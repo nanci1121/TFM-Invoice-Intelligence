@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Intelligence - TFM Presentación</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/black.css">
+    <style>
+        .reveal h1, .reveal h2, .reveal h3 { text-transform: none; }
+        .reveal section { text-align: left; }
+        .reveal ul { margin-left: 1em; }
+        .reveal .center { text-align: center; }
+        .reveal .highlight { color: #42affa; }
+        .reveal .success { color: #4CAF50; }
+        .reveal .warning { color: #ff9800; }
+        .reveal code { background: #1e1e1e; padding: 0.2em 0.5em; border-radius: 3px; }
+        .reveal pre code { padding: 1em; }
+        .reveal .small { font-size: 0.8em; }
+        .reveal .architecture-diagram { 
+            background: #2d2d2d; 
+            padding: 2em; 
+            border-radius: 10px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            
+            <!-- Slide 1: Portada -->
+            <section class="center">
+                <h1 class="highlight">Invoice Intelligence</h1>
+                <h3>Sistema de Auditoría Inteligente de Facturas</h3>
+                <p style="margin-top: 2em;">
+                    <strong>Trabajo Final de Máster</strong><br>
+                    Big Data & Business Intelligence<br>
+                    <br>
+                    <span class="small">Presentado por: [Tu Nombre]</span><br>
+                    <span class="small">Fecha: Enero 2026</span>
+                </p>
+            </section>
+
+            <!-- Slide 2: Índice -->
+            <section>
+                <h2>Índice</h2>
+                <ol>
+                    <li>Contexto y Motivación</li>
+                    <li>Objetivos del Proyecto</li>
+                    <li>Arquitectura del Sistema</li>
+                    <li>Tecnologías Utilizadas</li>
+                    <li>Funcionalidades Principales</li>
+                    <li>Workflows del Agente IA</li>
+                    <li>Resultados y Métricas</li>
+                    <li>Conclusiones y Trabajo Futuro</li>
+                </ol>
+            </section>
+
+            <!-- Slide 3: Contexto y Problema -->
+            <section>
+                <h2>Contexto y Problema</h2>
+                <h3 class="warning">Desafíos Actuales</h3>
+                <ul>
+                    <li>📄 <strong>Gestión manual</strong> de facturas es lenta y propensa a errores</li>
+                    <li>🔍 Dificultad para <strong>detectar anomalías</strong> y sobrecostos</li>
+                    <li>📊 Falta de <strong>análisis comparativo</strong> entre proveedores</li>
+                    <li>🔒 Preocupaciones de <strong>privacidad</strong> con APIs externas</li>
+                    <li>💰 Pérdida de oportunidades de <strong>ahorro</strong></li>
+                </ul>
+            </section>
+
+            <!-- Slide 4: Solución Propuesta -->
+            <section>
+                <h2>Solución Propuesta</h2>
+                <h3 class="success">Invoice Intelligence</h3>
+                <ul>
+                    <li>✅ <strong>Automatización</strong> de extracción de datos (PDF/imágenes)</li>
+                    <li>✅ <strong>Validación inteligente</strong> con IA local</li>
+                    <li>✅ <strong>Análisis comparativo</strong> de proveedores</li>
+                    <li>✅ <strong>KPIs ejecutivos</strong> en tiempo real</li>
+                    <li>✅ <strong>100% privado</strong> - Sin APIs externas</li>
+                    <li>✅ <strong>Chat inteligente</strong> sobre tus facturas</li>
+                </ul>
+            </section>
+
+            <!-- Slide 5: Objetivos -->
+            <section>
+                <h2>Objetivos del Proyecto</h2>
+                <ul>
+                    <li><span class="success">✓</span> Automatizar extracción de datos de facturas</li>
+                    <li><span class="success">✓</span> Validar facturas y detectar errores automáticamente</li>
+                    <li><span class="success">✓</span> Generar KPIs ejecutivos para dirección</li>
+                    <li><span class="success">✓</span> Comparar proveedores y detectar ahorros potenciales</li>
+                    <li><span class="success">✓</span> Garantizar privacidad con IA local (Ollama)</li>
+                    <li><span class="success">✓</span> Proporcionar interfaz intuitiva y moderna</li>
+                </ul>
+            </section>
+
+            <!-- Slide 6: Arquitectura -->
+            <section>
+                <h2>Arquitectura del Sistema</h2>
+                <div class="architecture-diagram">
+                    <pre style="margin: 0; color: #42affa;">
+┌─────────────────────────────────────────┐
+│         Frontend (HTML/CSS/JS)          │
+│      Dashboard + Chat + Gráficos        │
+└────────────────┬────────────────────────┘
+                 │ HTTP/REST
+┌────────────────▼────────────────────────┐
+│      Backend (FastAPI + Python)         │
+│   • Endpoints REST                      │
+│   • Workflows del Agente                │
+│   • Procesamiento de archivos           │
+└─┬──────────┬──────────┬─────────────────┘
+  │          │          │
+  ▼          ▼          ▼
+┌────┐   ┌──────┐   ┌────────┐
+│IA  │   │ DB   │   │ Docker │
+│Ollama   │Postgres  │Compose │
+└────┘   └──────┘   └────────┘
+                    </pre>
+                </div>
+            </section>
+
+            <!-- Slide 7: Tecnologías -->
+            <section>
+                <h2>Tecnologías Utilizadas</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2em;">
+                    <div>
+                        <h3 class="highlight">Backend</h3>
+                        <ul class="small">
+                            <li>Python 3.11</li>
+                            <li>FastAPI</li>
+                            <li>SQLAlchemy</li>
+                            <li>pdfplumber</li>
+                            <li>pytesseract (OCR)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="highlight">Frontend</h3>
+                        <ul class="small">
+                            <li>HTML5 / CSS3</li>
+                            <li>JavaScript (Vanilla)</li>
+                            <li>Chart.js</li>
+                            <li>Glassmorphism UI</li>
+                        </ul>
+                    </div>
+                </div>
+                <div style="margin-top: 1em;">
+                    <h3 class="highlight">Infraestructura</h3>
+                    <ul class="small">
+                        <li><strong>IA Local:</strong> Ollama (qwen2.5:3b)</li>
+                        <li><strong>Base de Datos:</strong> PostgreSQL</li>
+                        <li><strong>Orquestación:</strong> Docker Compose</li>
+                        <li><strong>CI/CD:</strong> GitHub Actions</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 8: Extracción Híbrida -->
+            <section>
+                <h2>Extracción Híbrida de Datos</h2>
+                <h3 class="highlight">Proceso en 3 Fases</h3>
+                <ol>
+                    <li><strong>Regex (Patrones)</strong>
+                        <ul class="small">
+                            <li>Números de factura, fechas, importes</li>
+                            <li>Patrones dinámicos desde BD</li>
+                            <li>Alta precisión para datos estructurados</li>
+                        </ul>
+                    </li>
+                    <li><strong>IA Local (Ollama)</strong>
+                        <ul class="small">
+                            <li>Contexto y campos complejos</li>
+                            <li>Categorización inteligente</li>
+                            <li>100% privado</li>
+                        </ul>
+                    </li>
+                    <li><strong>Post-procesamiento</strong>
+                        <ul class="small">
+                            <li>Validación cruzada</li>
+                            <li>Prioridad a datos de Regex</li>
+                        </ul>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- Slide 9: Workflows del Agente -->
+            <section>
+                <h2>Workflows del Agente IA</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em;">
+                    <div>
+                        <h4 class="highlight">📋 Validar Factura</h4>
+                        <p class="small">Detecta errores aritméticos y fiscales</p>
+                        
+                        <h4 class="highlight">📊 KPIs Dirección</h4>
+                        <p class="small">Informes ejecutivos con insights</p>
+                        
+                        <h4 class="highlight">⚖️ KPIs Reclamación</h4>
+                        <p class="small">Base técnica para reclamar</p>
+                    </div>
+                    <div>
+                        <h4 class="highlight">🔄 Comparar Proveedor</h4>
+                        <p class="small">Benchmarking y ahorro potencial</p>
+                        
+                        <h4 class="highlight">🚨 Alertas</h4>
+                        <p class="small">Detección de anomalías en consumo</p>
+                        
+                        <h4 class="highlight">💬 Chat</h4>
+                        <p class="small">Consultas en lenguaje natural</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 10: Dashboard -->
+            <section>
+                <h2>Dashboard Interactivo</h2>
+                <h3 class="highlight">Características Principales</h3>
+                <ul>
+                    <li>📊 <strong>Gráficos en tiempo real</strong>
+                        <ul class="small">
+                            <li>Evolución temporal de gastos</li>
+                            <li>Distribución por categoría</li>
+                            <li>Eficiencia de consumo</li>
+                        </ul>
+                    </li>
+                    <li>📋 <strong>Tabla interactiva</strong> con filtros y búsqueda</li>
+                    <li>📤 <strong>Carga Drag & Drop</strong> de facturas</li>
+                    <li>💬 <strong>Chat inteligente</strong> sobre tus datos</li>
+                    <li>🎨 <strong>Diseño moderno</strong> con glassmorphism</li>
+                </ul>
+            </section>
+
+            <!-- Slide 11: Funcionalidad - Análisis -->
+            <section>
+                <h2>Análisis de Facturas</h2>
+                <h3 class="highlight">Proceso Automatizado</h3>
+                <ol>
+                    <li><strong>Carga de archivo</strong> (PDF o imagen)</li>
+                    <li><strong>Extracción automática</strong> de datos</li>
+                    <li><strong>Validación inteligente</strong> con IA</li>
+                    <li><strong>Almacenamiento</strong> en base de datos</li>
+                    <li><strong>Generación de KPIs</strong> automática</li>
+                </ol>
+                <p class="small" style="margin-top: 1em;">
+                    <span class="success">✓</span> Tiempo de procesamiento: <strong>&lt;5 segundos</strong><br>
+                    <span class="success">✓</span> Precisión de extracción: <strong>&gt;90%</strong>
+                </p>
+            </section>
+
+            <!-- Slide 12: Chat Inteligente -->
+            <section>
+                <h2>Chat Inteligente</h2>
+                <h3 class="highlight">Consultas en Lenguaje Natural</h3>
+                <div style="background: #2d2d2d; padding: 1em; border-radius: 10px; margin-top: 1em;">
+                    <p class="small"><strong>Usuario:</strong> "¿Cuál es mi gasto total en telecomunicaciones?"</p>
+                    <p class="small" style="color: #42affa;"><strong>IA:</strong> "Tu gasto total en Telecom es 450€ en los últimos 3 meses..."</p>
+                </div>
+                <ul style="margin-top: 1em;">
+                    <li>Análisis contextual de facturas</li>
+                    <li>Respuestas con KPIs relevantes</li>
+                    <li>Recomendaciones de ahorro</li>
+                    <li>Detección de anomalías</li>
+                </ul>
+            </section>
+
+            <!-- Slide 13: Resultados y Métricas -->
+            <section>
+                <h2>Resultados y Métricas</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2em;">
+                    <div>
+                        <h3 class="highlight">Testing</h3>
+                        <ul>
+                            <li><span class="success">✓</span> 15 tests automatizados</li>
+                            <li><span class="success">✓</span> 61% cobertura de código</li>
+                            <li><span class="success">✓</span> GitHub Actions CI/CD</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="highlight">Rendimiento</h3>
+                        <ul>
+                            <li><span class="success">✓</span> &lt;5s por factura</li>
+                            <li><span class="success">✓</span> &gt;90% precisión</li>
+                            <li><span class="success">✓</span> 100% local/privado</li>
+                        </ul>
+                    </div>
+                </div>
+                <div style="margin-top: 1em;">
+                    <h3 class="highlight">Funcionalidades</h3>
+                    <ul>
+                        <li><span class="success">✓</span> 6 workflows del agente implementados</li>
+                        <li><span class="success">✓</span> Soporte PDF texto + OCR + imágenes</li>
+                        <li><span class="success">✓</span> Dashboard completo con gráficos</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 14: Privacidad y Seguridad -->
+            <section>
+                <h2>Privacidad y Seguridad</h2>
+                <h3 class="success">100% Local y Privado</h3>
+                <ul>
+                    <li>🔒 <strong>Sin APIs externas</strong>
+                        <ul class="small">
+                            <li>Toda la IA corre en local con Ollama</li>
+                            <li>No se envían datos a terceros</li>
+                        </ul>
+                    </li>
+                    <li>🔒 <strong>Datos en tu infraestructura</strong>
+                        <ul class="small">
+                            <li>PostgreSQL local</li>
+                            <li>Control total sobre los datos</li>
+                        </ul>
+                    </li>
+                    <li>🔒 <strong>Docker para aislamiento</strong>
+                        <ul class="small">
+                            <li>Componentes separados</li>
+                            <li>Fácil despliegue y mantenimiento</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 15: Conclusiones -->
+            <section>
+                <h2>Conclusiones</h2>
+                <ul>
+                    <li><span class="success">✓</span> <strong>Sistema funcional y completo</strong>
+                        <ul class="small">
+                            <li>Automatización exitosa de auditoría de facturas</li>
+                        </ul>
+                    </li>
+                    <li><span class="success">✓</span> <strong>IA local garantiza privacidad</strong>
+                        <ul class="small">
+                            <li>Sin dependencias de APIs externas</li>
+                        </ul>
+                    </li>
+                    <li><span class="success">✓</span> <strong>Arquitectura escalable</strong>
+                        <ul class="small">
+                            <li>Docker Compose facilita despliegue</li>
+                        </ul>
+                    </li>
+                    <li><span class="success">✓</span> <strong>Tests automatizados y CI/CD</strong>
+                        <ul class="small">
+                            <li>GitHub Actions configurado</li>
+                        </ul>
+                    </li>
+                    <li><span class="success">✓</span> <strong>Interfaz moderna e intuitiva</strong>
+                        <ul class="small">
+                            <li>Dashboard con glassmorphism</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 16: Trabajo Futuro -->
+            <section>
+                <h2>Trabajo Futuro</h2>
+                <h3 class="highlight">Mejoras Propuestas</h3>
+                <ul>
+                    <li>📈 <strong>Integración con sistemas ERP</strong>
+                        <ul class="small">
+                            <li>SAP, Oracle, etc.</li>
+                        </ul>
+                    </li>
+                    <li>📈 <strong>Machine Learning predictivo</strong>
+                        <ul class="small">
+                            <li>Predicción de gastos futuros</li>
+                        </ul>
+                    </li>
+                    <li>📈 <strong>App móvil</strong>
+                        <ul class="small">
+                            <li>Captura de facturas con cámara</li>
+                        </ul>
+                    </li>
+                    <li>📈 <strong>Soporte multi-idioma</strong></li>
+                    <li>📈 <strong>Análisis de tendencias</strong> con IA avanzada</li>
+                </ul>
+            </section>
+
+            <!-- Slide 17: Agradecimientos -->
+            <section class="center">
+                <h1>¡Gracias!</h1>
+                <h2 class="highlight">¿Preguntas?</h2>
+                <p style="margin-top: 2em;">
+                    <strong>Invoice Intelligence</strong><br>
+                    Sistema de Auditoría Inteligente de Facturas<br>
+                    <br>
+                    <span class="small">
+                        GitHub: github.com/nanci1121/TFM-Invoice-Intelligence<br>
+                        [Tu email]
+                    </span>
+                </p>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            transition: 'slide',
+            backgroundTransition: 'fade',
+            controls: true,
+            progress: true,
+            center: false,
+            width: 1280,
+            height: 720,
+        });
+    </script>
+</body>
+</html>
