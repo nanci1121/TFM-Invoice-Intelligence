@@ -15,7 +15,6 @@ htmlcov/
 backend/uploads/
 backend/processed/
 backend/db.sqlite3
-.agent/
 output.txt
 temp_text.txt
 debug_pdf_text.py
