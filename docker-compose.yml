@@ -3,15 +3,15 @@ services:
     image: postgres:15-alpine
     container_name: tfm_invoice_db
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: invoices
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - tfm_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U user -d invoices" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -20,7 +20,7 @@ services:
     image: ollama/ollama:latest
     container_name: tfm_ollama
     ports:
-      - "11435:11434"
+      - "${OLLAMA_PORT:-11435}:11434"
     volumes:
       - tfm_ollama_data:/root/.ollama
     healthcheck:
@@ -45,10 +45,10 @@ services:
     build: .
     container_name: tfm_invoice_app
     ports:
-      - "8000:8000"
+      - "${APP_PORT:-8000}:8000"
     environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/invoices
-      - OLLAMA_URL=http://ollama:11434/api/generate
+      - DATABASE_URL=${DATABASE_URL}
+      - OLLAMA_URL=${OLLAMA_URL}
     volumes:
       - /home/venancio/Documentos/ProjectoFinalBIGschool/backend/processed:/app/backend/processed
       - /home/venancio/Documentos/ProjectoFinalBIGschool/backend/uploads:/app/backend/uploads
@@ -72,8 +72,8 @@ services:
       - /home/venancio/Documentos/ProjectoFinalBIGschool/backend/processed:/app/backend/processed
       - ./.agent:/app/.agent:ro
     environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/invoices
-      - OLLAMA_URL=http://ollama:11434/api/generate
+      - DATABASE_URL=${DATABASE_URL}
+      - OLLAMA_URL=${OLLAMA_URL}
       - PYTHONUNBUFFERED=1
     depends_on:
       app:

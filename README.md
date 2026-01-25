@@ -29,12 +29,25 @@ El sistema sigue reglas estrictas definidas en la carpeta `.agent`:
 1. **Prerrequisitos**:
    - Docker y Docker Compose instalados.
 
-2. **Levantar infraestructura**:
+2. **Configuración de variables de entorno**:
+   ```bash
+   # Copiar el archivo de ejemplo
+   cp .env.example .env
+   
+   # Editar .env y cambiar las credenciales
+   nano .env
+   ```
+   
+   **Importante**: Cambia las credenciales por defecto en `.env`:
+   - `POSTGRES_PASSWORD`: Usa una contraseña segura
+   - `POSTGRES_USER`: Cambia el usuario si lo deseas
+
+3. **Levantar infraestructura**:
    ```bash
    docker-compose up -d --build
    ```
 
-3. **Acceso**:
+4. **Acceso**:
    - Dashboard: `http://localhost:8000/frontend/index.html`
    - API Docs: `http://localhost:8000/docs`
 
