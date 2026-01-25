@@ -1,0 +1,62 @@
+
+name: Invoice Audit Agent CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Run Unit & Integration Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      # Use a lightweight Postgres service for DB tests if needed, 
+      # though our tests mock it, having it available is good practice.
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: invoices
+        ports:
+          - 5432:5432
+        # Set health check to wait until postgres is ready
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
+        
+    - name: Run Tests
+      env:
+        DATABASE_URL: postgresql://user:password@localhost:5432/invoices
+        # Mock OLLAMA URL to avoid connection errors in tests that might try to connect
+        OLLAMA_URL: http://localhost:11434/api/generate
+        PYTHONPATH: .
+      run: |
+        pytest backend/tests
+
+  docker-check:
+    name: Verify Docker Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker Image (Dry Run)
+      run: docker compose build
