@@ -4,7 +4,13 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/invoices")
+# Use SQLite for testing, PostgreSQL for production
+TESTING = os.getenv("TESTING", "false").lower() == "true"
+
+if TESTING:
+    DATABASE_URL = "sqlite:///:memory:"
+else:
+    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/invoices")
 
 Base = declarative_base()
 
@@ -41,7 +47,13 @@ class Invoice(Base):
     consumption_unit = Column(String) # 'kWh', 'm3', 'min', etc.
 
 from sqlalchemy import create_engine
-engine = create_engine(DATABASE_URL)
+
+# Create engine with appropriate settings
+if TESTING:
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():

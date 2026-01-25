@@ -2,6 +2,23 @@ import pytest
 import json
 from unittest.mock import Mock, patch, MagicMock
 from backend.ai_service import extract_invoice_data, validate_invoice, generate_kpis_direccion
+from backend.database import Provider
+
+# Helper to create mock providers
+def get_mock_providers():
+    return [
+        Provider(name="O2", vendor_name="O2", category="Telecom", patterns={
+            "invoice_number": [r"(OM[0-9A-Z]{7}[0-9A-Z\*]{3,})"],
+            "date": [r"(\d{1,2})\s+de\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+de\s+(\d{4})"],
+            "vendor": [r"O2"],
+            "total_amount": [r"Importe total[:\s]+(\d+\.\d{2})"]
+        }),
+        Provider(name="Iberdrola", vendor_name="Iberdrola", category="Electricity", patterns={
+             "invoice_number": [r"N[°º]\s*Factura[:\s]+([A-Z0-9\-]+)"],
+             "vendor": [r"Iberdrola"],
+             "category": "Electricity"
+        })
+    ]
 
 
 class TestExtractInvoiceData:
@@ -33,8 +50,9 @@ class TestExtractInvoiceData:
             }
             mock_post.return_value.raise_for_status = Mock()
             
-            # Create a mock DB session
+            # Create a mock DB session with providers
             mock_db = MagicMock()
+            mock_db.query.return_value.all.return_value = get_mock_providers()
             result = extract_invoice_data(text, mock_db)
             data = json.loads(result)
             
@@ -66,6 +84,7 @@ class TestExtractInvoiceData:
             mock_post.return_value.raise_for_status = Mock()
             
             mock_db = MagicMock()
+            mock_db.query.return_value.all.return_value = get_mock_providers()
             result = extract_invoice_data(text, mock_db)
             data = json.loads(result)
             

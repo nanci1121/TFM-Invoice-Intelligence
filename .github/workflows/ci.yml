@@ -12,24 +12,6 @@ jobs:
     name: Run Unit & Integration Tests
     runs-on: ubuntu-latest
     
-    services:
-      # Use a lightweight Postgres service for DB tests if needed, 
-      # though our tests mock it, having it available is good practice.
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: invoices
-        ports:
-          - 5432:5432
-        # Set health check to wait until postgres is ready
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
     - uses: actions/checkout@v4
     
@@ -41,16 +23,14 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
+        pip install -r requisitos.txt
         
     - name: Run Tests
       env:
-        DATABASE_URL: postgresql://user:password@localhost:5432/invoices
-        # Mock OLLAMA URL to avoid connection errors in tests that might try to connect
-        OLLAMA_URL: http://localhost:11434/api/generate
+        TESTING: "true"
         PYTHONPATH: .
       run: |
-        pytest backend/tests
+        pytest backend/tests/ -v --cov=backend --cov-report=term-missing
 
   docker-check:
     name: Verify Docker Build
