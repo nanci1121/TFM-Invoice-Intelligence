@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 # Add backend to path to import ai_service
-sys.path.append(os.path.join(os.getcwd(), 'backend'))
+# sys.path.append(os.path.join(os.getcwd(), 'backend')) # REMOVED: Rely on PYTHONPATH=.
 
 # Mock requirements for import
 import unittest

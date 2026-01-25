@@ -1,13 +1,7 @@
 import pytest
 import json
 from unittest.mock import Mock, patch, MagicMock
-import sys
-import os
-
-# Añadir el directorio backend al path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from ai_service import extract_invoice_data, validate_invoice, generate_kpis_direccion
+from backend.ai_service import extract_invoice_data, validate_invoice, generate_kpis_direccion
 
 
 class TestExtractInvoiceData:
@@ -33,13 +27,15 @@ class TestExtractInvoiceData:
             "category": "Telecom"
         }
         
-        with patch('ai_service.requests.post') as mock_post:
+        with patch('backend.ai_service.requests.post') as mock_post:
             mock_post.return_value.json.return_value = {
                 "response": json.dumps(mock_response)
             }
             mock_post.return_value.raise_for_status = Mock()
             
-            result = extract_invoice_data(text)
+            # Create a mock DB session
+            mock_db = MagicMock()
+            result = extract_invoice_data(text, mock_db)
             data = json.loads(result)
             
             # El regex debe forzar el número correcto
@@ -63,13 +59,14 @@ class TestExtractInvoiceData:
             "category": "Other"
         }
         
-        with patch('ai_service.requests.post') as mock_post:
+        with patch('backend.ai_service.requests.post') as mock_post:
             mock_post.return_value.json.return_value = {
                 "response": json.dumps(mock_response)
             }
             mock_post.return_value.raise_for_status = Mock()
             
-            result = extract_invoice_data(text)
+            mock_db = MagicMock()
+            result = extract_invoice_data(text, mock_db)
             data = json.loads(result)
             
             # El regex debe forzar la fecha correcta
@@ -94,13 +91,14 @@ class TestExtractInvoiceData:
             "category": "Other"
         }
         
-        with patch('ai_service.requests.post') as mock_post:
+        with patch('backend.ai_service.requests.post') as mock_post:
             mock_post.return_value.json.return_value = {
                 "response": json.dumps(mock_response)
             }
             mock_post.return_value.raise_for_status = Mock()
             
-            result = extract_invoice_data(text)
+            mock_db = MagicMock()
+            result = extract_invoice_data(text, mock_db)
             data = json.loads(result)
             
             # El regex debe forzar categoría Telecom
@@ -125,13 +123,14 @@ class TestExtractInvoiceData:
             "category": "Other"
         }
         
-        with patch('ai_service.requests.post') as mock_post:
+        with patch('backend.ai_service.requests.post') as mock_post:
             mock_post.return_value.json.return_value = {
                 "response": json.dumps(mock_response)
             }
             mock_post.return_value.raise_for_status = Mock()
             
-            result = extract_invoice_data(text)
+            mock_db = MagicMock()
+            result = extract_invoice_data(text, mock_db)
             data = json.loads(result)
             
             assert data['category'] == 'Electricity'
@@ -140,10 +139,11 @@ class TestExtractInvoiceData:
         """Prueba que maneja errores de API correctamente"""
         text = "Factura de prueba"
         
-        with patch('ai_service.requests.post') as mock_post:
+        with patch('backend.ai_service.requests.post') as mock_post:
             mock_post.side_effect = Exception("API Error")
             
-            result = extract_invoice_data(text)
+            mock_db = MagicMock()
+            result = extract_invoice_data(text, mock_db)
             data = json.loads(result)
             
             assert 'error' in data
@@ -169,16 +169,17 @@ class TestExtractInvoiceData:
                 "category": "Other"
             }
             
-            with patch('ai_service.requests.post') as mock_post:
-                mock_post.return_value.json.return_value = {
-                    "response": json.dumps(mock_response)
-                }
-                mock_post.return_value.raise_for_status = Mock()
-                
-                result = extract_invoice_data(text)
-                data = json.loads(result)
-                
-                assert data['date'] == f'2025-{month_num}-10', f"Failed for {month_name}"
+        with patch('backend.ai_service.requests.post') as mock_post:
+            mock_post.return_value.json.return_value = {
+                "response": json.dumps(mock_response)
+            }
+            mock_post.return_value.raise_for_status = Mock()
+            
+            mock_db = MagicMock()
+            result = extract_invoice_data(text, mock_db)
+            data = json.loads(result)
+            
+            assert data['date'] == f'2025-{month_num}-10', f"Failed for {month_name}"
 
 
 class TestValidateInvoice:
@@ -200,7 +201,7 @@ class TestValidateInvoice:
             "advertencias": []
         }
         
-        with patch('ai_service.requests.post') as mock_post:
+        with patch('backend.ai_service.requests.post') as mock_post:
             mock_post.return_value.json.return_value = {
                 "response": json.dumps(mock_response)
             }
@@ -219,7 +220,7 @@ class TestValidateInvoice:
         }
         context = "Facturas anteriores: 100 EUR, 105 EUR, 110 EUR"
         
-        with patch('ai_service.requests.post') as mock_post:
+        with patch('backend.ai_service.requests.post') as mock_post:
             mock_post.return_value.json.return_value = {
                 "response": json.dumps({"validacion": "ALERTA", "errores_detectados": ["Incremento >30%"]})
             }
@@ -259,7 +260,7 @@ class TestGenerateKPIs:
             "tendencia": "estable"
         }
         
-        with patch('ai_service.requests.post') as mock_post:
+        with patch('backend.ai_service.requests.post') as mock_post:
             mock_post.return_value.json.return_value = {
                 "response": json.dumps(mock_response)
             }
@@ -287,7 +288,7 @@ class TestGenerateKPIs:
             }
         }
         
-        with patch('ai_service.requests.post') as mock_post:
+        with patch('backend.ai_service.requests.post') as mock_post:
             mock_post.return_value.json.return_value = {
                 "response": json.dumps(mock_response)
             }
