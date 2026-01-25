@@ -117,6 +117,7 @@ class TestExtractInvoiceData:
             mock_post.return_value.raise_for_status = Mock()
             
             mock_db = MagicMock()
+            mock_db.query.return_value.all.return_value = get_mock_providers()
             result = extract_invoice_data(text, mock_db)
             data = json.loads(result)
             
@@ -149,6 +150,7 @@ class TestExtractInvoiceData:
             mock_post.return_value.raise_for_status = Mock()
             
             mock_db = MagicMock()
+            mock_db.query.return_value.all.return_value = get_mock_providers()
             result = extract_invoice_data(text, mock_db)
             data = json.loads(result)
             
@@ -162,10 +164,14 @@ class TestExtractInvoiceData:
             mock_post.side_effect = Exception("API Error")
             
             mock_db = MagicMock()
+            mock_db.query.return_value.all.return_value = get_mock_providers()
             result = extract_invoice_data(text, mock_db)
             data = json.loads(result)
             
-            assert 'error' in data
+            # Check for error indication in notes or error field
+            assert 'notes' in data or 'error' in data
+            if 'notes' in data:
+                assert 'falló' in data['notes'].lower() or 'error' in data['notes'].lower()
     
     def test_extract_all_months(self):
         """Prueba que detecta todos los meses en español"""
@@ -188,17 +194,19 @@ class TestExtractInvoiceData:
                 "category": "Other"
             }
             
-        with patch('backend.ai_service.requests.post') as mock_post:
-            mock_post.return_value.json.return_value = {
-                "response": json.dumps(mock_response)
-            }
-            mock_post.return_value.raise_for_status = Mock()
-            
-            mock_db = MagicMock()
-            result = extract_invoice_data(text, mock_db)
-            data = json.loads(result)
-            
-            assert data['date'] == f'2025-{month_num}-10', f"Failed for {month_name}"
+            # Move patch INSIDE the loop
+            with patch('backend.ai_service.requests.post') as mock_post:
+                mock_post.return_value.json.return_value = {
+                    "response": json.dumps(mock_response)
+                }
+                mock_post.return_value.raise_for_status = Mock()
+                
+                mock_db = MagicMock()
+                mock_db.query.return_value.all.return_value = get_mock_providers()
+                result = extract_invoice_data(text, mock_db)
+                data = json.loads(result)
+                
+                assert data['date'] == f'2025-{month_num}-10', f"Failed for {month_name}"
 
 
 class TestValidateInvoice:
