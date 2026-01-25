@@ -1,0 +1,85 @@
+{
+  "providers": [
+    {
+      "name": "Atecal",
+      "vendor_name": "Atecal",
+      "category": "Maintenance",
+      "patterns": {
+        "invoice_number": [
+          "Nº orden[:\\s]+(\\d+)"
+        ],
+        "date": [
+          "Data[:\\s]+(\\d{2})/(\\d{2})/(\\d{4})"
+        ],
+        "vendor": [
+          "atecal@atecal\\.com",
+          "Atecal 2001, SLU"
+        ],
+        "nif": [
+          "39182489B"
+        ],
+        "total_amount": [
+          "Import[\\s]+Net[\\s]+(\\d+\\.\\d{2})"
+        ]
+      }
+    },
+    {
+      "name": "Mercadona",
+      "vendor_name": "Mercadona S.A.",
+      "category": "Food",
+      "patterns": {
+        "invoice_number": [
+          "FACTURA SIMPLIFICADA[:\\s]+(\\d{4}-\\d{3}-\\d{6})"
+        ],
+        "date": [
+          "(\\d{2})/(\\d{2})/(\\d{4})\\s+\\d{2}:\\d{2}"
+        ],
+        "vendor": [
+          "MERCADONA[,\\s]+S\\.?A\\.?"
+        ],
+        "total_amount": [
+          "TOTAL\\s+\\(€\\)\\s+(\\d+[.,]\\d{2})"
+        ]
+      }
+    },
+    {
+      "name": "O2",
+      "vendor_name": "O2",
+      "category": "Telecom",
+      "patterns": {
+        "invoice_number": [
+          "(OM[0-9A-Z]{7}[0-9A-Z\\*]{3,})"
+        ],
+        "date": [
+          "(\\d{1,2})\\s+de\\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\\s+de\\s+(\\d{4})"
+        ],
+        "vendor": [
+          "O2\\s+ESPAÑA",
+          "^O2$"
+        ],
+        "total_amount": [
+          "Total\\s+factura[:\\s]+(\\d+[.,]\\d{2})\\s*€?"
+        ]
+      }
+    },
+    {
+      "name": "Iberdrola",
+      "vendor_name": "Iberdrola",
+      "category": "Electricity",
+      "patterns": {
+        "invoice_number": [
+          "N[°º]\\s*Factura[:\\s]+([A-Z0-9\\-]+)"
+        ],
+        "date": [
+          "Fecha[:\\s]+(\\d{2})/(\\d{2})/(\\d{4})"
+        ],
+        "vendor": [
+          "IBERDROLA"
+        ],
+        "total_amount": [
+          "TOTAL[:\\s]+(\\d+[.,]\\d{2})\\s*€?"
+        ]
+      }
+    }
+  ]
+}

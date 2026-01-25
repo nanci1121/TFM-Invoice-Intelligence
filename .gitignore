@@ -1,0 +1,39 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Project Specific
+backend/uploads/
+backend/processed/
+backend/db.sqlite3
+.agent/
+output.txt
+temp_text.txt
+debug_pdf_text.py
+
+# Docker
+.docker_data/
+postgres_data/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Personal Data
+F-pruebas/
+
+# Documentation
+requisitos.txt

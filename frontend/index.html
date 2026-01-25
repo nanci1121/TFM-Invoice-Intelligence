@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Invoice Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>Invoice Intelligence</h1>
+            <div class="user-profile" style="display: flex; gap: 1rem; align-items: center;">
+                <button class="upload-btn" onclick="window.location.href='/frontend/admin.html'"
+                    style="background: rgba(255,255,255,0.1); color: var(--text-main); border: 1px solid var(--glass-border);">⚙️ Configurar Patrones</button>
+                <button class="upload-btn" onclick="window.print()"
+                    style="background: rgba(255,255,255,0.1); color: var(--text-main); border: 1px solid var(--glass-border);">Imprimir
+                    Informe</button>
+                <span>Contable Alpha</span>
+            </div>
+        </header>
+
+        <div class="grid">
+            <!-- Row 1: Upload + Stats -->
+            <div class="card upload-section" style="grid-column: 1 / 2;">
+                <h2>📤 Subir Factura</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Carga facturas de suministros (PDF o imagen)</p>
+                <input type="file" id="invoiceUpload" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
+                <button class="upload-btn" onclick="document.getElementById('invoiceUpload').click()">Seleccionar Archivo</button>
+                <div id="uploadStatus" style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);"></div>
+            </div>
+
+            <div class="card" style="grid-column: 2 / 4;">
+                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem;">
+                    <div>
+                        <h2>📊 Resumen General</h2>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalInvoices">0</div>
+                                <div class="stat-label">Total Facturas</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalSales">0 €</div>
+                                <div class="stat-label">Total Gastos</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalPurchases">0 €</div>
+                                <div class="stat-label">Gasto Medio</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button class="workflow-btn" onclick="runWorkflow('kpis-direccion')" title="Generar KPIs para dirección" style="flex: 1;">📊 KPIs Dirección</button>
+                            <button class="workflow-btn" onclick="runWorkflow('resumen-reunion')" title="Resumen ejecutivo" style="flex: 1;">📝 Resumen Ejecutivo</button>
+                        </div>
+                    </div>
+                    <div style="border-left: 1px solid var(--glass-border); padding-left: 1.5rem;">
+                        <h3 style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">KPIs de Eficiencia</h3>
+                        <table id="efficiencyTable" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                            <tbody style="color: #e2e8f0;">
+                                <!-- Se llena dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Invoices List (full width) -->
+            <div class="card" style="grid-column: 1 / 4;">
+                <h2>📋 Historial de Facturas</h2>
+                <table class="invoice-table">
+                    <thead>
+                        <tr>
+                            <th>Nº Factura</th>
+                            <th>Fecha</th>
+                            <th>Proveedor</th>
+                            <th>Categoría</th>
+                            <th>Consumo</th>
+                            <th>Importe</th>
+                            <th>Workflows</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                                No hay facturas procesadas. Sube una factura para comenzar.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Row 3: Charts + Chat -->
+            <div class="card" style="grid-column: 1 / 3;">
+                <h2>📈 Análisis Visual</h2>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+                    <div>
+                        <h3 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">Evolución de Gastos</h3>
+                        <div class="chart-container">
+                            <canvas id="evolutionChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">Distribución por Categoría</h3>
+                        <div class="chart-container">
+                            <canvas id="distributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card chat-card" style="grid-column: 3 / 4;">
+                <h2>💬 Asistente IA</h2>
+                <div id="chatMessages">
+                    <div class="message ai">Soy tu asistente especializado en análisis contable de facturas de suministros. ¿Qué necesitas analizar?</div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" id="chatInput" class="chat-input" placeholder="Escribe tu consulta...">
+                    <button class="upload-btn" onclick="sendMessage()" style="padding: 0.5rem 1rem; border-radius: 0.5rem;">Enviar</button>
+                </div>
+            </div>
+
+            <!-- Pre-processed Text Card (Hidden by default) - FOR TESTING ONLY -->
+            <div id="rawTextCard" class="card" style="grid-column: 1 / 4; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>📄 Texto Extraído (Python → IA) - MODO PRUEBA</h2>
+                    <button onclick="document.getElementById('rawTextCard').style.display='none'" 
+                            style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; cursor: pointer; padding: 4px 10px; border-radius: 4px; font-weight: 600;">Cerrar</button>
+                </div>
+                <div id="rawTextContent" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.75rem; max-height: 300px; overflow-y: auto; color: #6ee7b7; white-space: pre-wrap; border: 1px solid rgba(52, 211, 153, 0.3);">
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    ⚙️ Este es el texto tal cual lo lee <strong>pdfplumber</strong> antes de enviarlo a Ollama. 
+                    <span style="color: #fbbf24;">Desactiva esta tarjeta en producción.</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Init chart with empty data
+        const ctx = document.getElementById('evolutionChart').getContext('2d');
+        const evolutionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Gastos (€)',
+                    data: [],
+                    backgroundColor: 'rgba(129, 140, 248, 0.7)',
+                    borderColor: '#818cf8',
+                    borderWidth: 2,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#f8fafc' }
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.1)' }, 
+                        ticks: { color: '#94a3b8' }
+                    },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        const ctxDist = document.getElementById('distributionChart').getContext('2d');
+        const distributionChart = new Chart(ctxDist, {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: ['#818cf8', '#c084fc', '#fb7185', '#34d399', '#fbbf24'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#f8fafc', boxWidth: 10 } }
+                }
+            }
+        });
+
+        // Basic upload handler mockup
+        document.getElementById('invoiceUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const statusDiv = document.getElementById('uploadStatus');
+            statusDiv.innerHTML = '⏳ Procesando factura...';
+            statusDiv.style.color = '#818cf8';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    statusDiv.innerHTML = '✅ Factura procesada con éxito';
+                    statusDiv.style.color = '#34d399';
+                    
+                    // Mostrar el texto extraído en la tarjeta de pruebas
+                    if (data.raw_text) {
+                        const rawCard = document.getElementById('rawTextCard');
+                        const rawContent = document.getElementById('rawTextContent');
+                        rawContent.innerText = data.raw_text;
+                        rawCard.style.display = 'block';
+                    }
+
+                    setTimeout(() => {
+                        statusDiv.innerHTML = '';
+                        updateDashboard();
+                    }, 2000);
+                } else {
+                    statusDiv.innerHTML = '❌ Error: ' + data.message;
+                    statusDiv.style.color = '#f87171';
+                }
+            } catch (err) {
+                statusDiv.innerHTML = '❌ Error al subir archivo';
+                statusDiv.style.color = '#f87171';
+            }
+        });
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const container = document.getElementById('chatMessages');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Add user message
+            container.innerHTML += `<div class="message user">${text}</div>`;
+            input.value = '';
+            container.scrollTop = container.scrollHeight;
+
+            // Call API
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: text })
+                });
+                const data = await response.json();
+                container.innerHTML += `<div class="message ai">${data.response}</div>`;
+            } catch (err) {
+                container.innerHTML += `<div class="message ai" style="color: #f87171;">Error al conectar con la IA</div>`;
+            }
+            container.scrollTop = container.scrollHeight;
+        }
+
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        async function updateDashboard() {
+            try {
+                const response = await fetch('/reports');
+                const invoices = await response.json();
+
+                const advResponse = await fetch('/advanced-stats');
+                const stats = await advResponse.json();
+
+                // Update Total Count
+                document.getElementById('totalInvoices').innerText = invoices.length;
+
+                // Update Totals
+                document.getElementById('totalSales').innerText = `${stats.total_cost.toFixed(2)} €`;
+                const averageExpense = invoices.length > 0 ? (stats.total_cost / invoices.length) : 0;
+                document.getElementById('totalPurchases').innerText = `${averageExpense.toFixed(2)} €`;
+
+                // Update Table List
+                const tableBody = document.getElementById('invoiceTableBody');
+                if (invoices.length === 0) {
+                    tableBody.innerHTML = `<tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                            No hay facturas procesadas. Sube una factura para comenzar.
+                        </td>
+                    </tr>`;
+                } else {
+                    tableBody.innerHTML = invoices.slice(-10).reverse().map(inv => {
+                        const date = inv.date ? new Date(inv.date).toLocaleDateString('es-ES') : '-';
+                        return `<tr>
+                            <td><code style="background: rgba(99, 102, 241, 0.15); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${inv.invoice_number || 'N/A'}</code></td>
+                            <td>${date}</td>
+                            <td><strong>${inv.vendor_name}</strong></td>
+                            <td><span style="background: rgba(129, 140, 248, 0.2); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">${inv.category}</span></td>
+                            <td>${inv.consumption ? inv.consumption.toFixed(2) + ' ' + (inv.consumption_unit || '') : '-'}</td>
+                            <td><strong>${inv.total_amount.toFixed(2)} ${inv.currency}</strong></td>
+                            <td>
+                                <select onchange="runInvoiceWorkflow(${inv.id}, this.value); this.value='';" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 6px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer;">
+                                    <option value="" style="background: #1e293b; color: #e2e8f0;">⚙️ Acciones...</option>
+                                    <option value="validar" style="background: #1e293b; color: #e2e8f0;">✓ Validar Factura</option>
+                                    <option value="reclamacion" style="background: #1e293b; color: #e2e8f0;">⚠️ Análisis Reclamación</option>
+                                    <option value="comparar" style="background: #1e293b; color: #e2e8f0;">📊 Comparar Proveedor</option>
+                                    <option value="alertas" style="background: #1e293b; color: #e2e8f0;">🔔 Verificar Alertas</option>
+                                    <option value="delete" style="background: #1e293b; color: #f87171;">🗑️ Eliminar</option>
+                                </select>
+                            </td>
+                        </tr>`;
+                    }).join('');
+                }
+
+                // Update Efficiency Table
+                const effBody = document.querySelector('#efficiencyTable tbody');
+                if (effBody) {
+                    effBody.innerHTML = stats.efficiency.length > 0 ? stats.efficiency.map(e =>
+                        `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 6px 0;">Costo ${e.category}</td>
+                            <td style="padding: 6px 0; text-align: right;"><strong>${e.cost_per_unit.toFixed(3)} €</strong> <small>/${e.unit}</small></td>
+                        </tr>`
+                    ).join('') : '<tr><td colspan="2" style="color: var(--text-muted); padding: 1rem; text-align: center;">Sin datos de consumo</td></tr>';
+                }
+
+                // Update Evolution Chart - Sort by date and format labels
+                const sortedInvoices = [...invoices]
+                    .filter(inv => inv.date) 
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                evolutionChart.data.labels = sortedInvoices.map(inv => {
+                    const date = new Date(inv.date);
+                    return `${inv.vendor_name} (${date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })})`;
+                });
+                evolutionChart.data.datasets[0].data = sortedInvoices.map(inv => inv.total_amount);
+                evolutionChart.update();
+
+                // Update Distribution Chart
+                if (stats.distribution && stats.distribution.length > 0) {
+                    distributionChart.data.labels = stats.distribution.map(d => d.name);
+                    distributionChart.data.datasets[0].data = stats.distribution.map(d => d.value);
+                    distributionChart.update();
+                }
+
+            } catch (err) {
+                console.error("Error updating dashboard:", err);
+            }
+        }
+
+        async function deleteInvoice(id) {
+            if (!confirm('¿Seguro que quieres borrar esta factura?')) return;
+            try {
+                const response = await fetch(`/invoices/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    updateDashboard();
+                } else {
+                    alert('Error al borrar: ' + data.message);
+                }
+            } catch (err) {
+                alert('Error de red al borrar factura');
+            }
+        }
+
+        async function runWorkflow(workflowName) {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML += `<div class="message user">Ejecutando workflow: ${workflowName}</div>`;
+            container.scrollTop = container.scrollHeight;
+
+            try {
+                const response = await fetch(`/workflow/${workflowName}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    container.innerHTML += `<div class="message ai" style="white-space: pre-wrap;">${data.result}</div>`;
+                } else {
+                    container.innerHTML += `<div class="message ai" style="color: #f87171;">Error: ${data.message}</div>`;
+                }
+            } catch (err) {
+                container.innerHTML += `<div class="message ai" style="color: #f87171;">Error al ejecutar workflow</div>`;
+            }
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function runInvoiceWorkflow(invoiceId, action) {
+            if (!action) return;
+            
+            if (action === 'delete') {
+                deleteInvoice(invoiceId);
+                return;
+            }
+
+            const workflowMap = {
+                'validar': 'validar-factura',
+                'reclamacion': 'kpis-reclamacion',
+                'comparar': 'comparar-proveedor',
+                'alertas': 'alertas'
+            };
+
+            const workflowName = workflowMap[action];
+            if (!workflowName) return;
+
+            const container = document.getElementById('chatMessages');
+            container.innerHTML += `<div class="message user">Ejecutando ${workflowName} para factura #${invoiceId}</div>`;
+            container.scrollTop = container.scrollHeight;
+
+            try {
+                const response = await fetch(`/workflow/${workflowName}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ invoice_id: invoiceId })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    container.innerHTML += `<div class="message ai" style="white-space: pre-wrap;">${data.result}</div>`;
+                } else {
+                    container.innerHTML += `<div class="message ai" style="color: #f87171;">Error: ${data.message}</div>`;
+                }
+            } catch (err) {
+                container.innerHTML += `<div class="message ai" style="color: #f87171;">Error al ejecutar workflow</div>`;
+            }
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Initial update and periodic refresh
+        updateDashboard();
+        setInterval(updateDashboard, 5000);
+    </script>
+</body>
+
+</html>

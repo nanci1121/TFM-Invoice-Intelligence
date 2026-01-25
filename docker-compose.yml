@@ -1,0 +1,84 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: tfm_invoice_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: invoices
+    ports:
+      - "5433:5432"
+    volumes:
+      - tfm_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d invoices" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: tfm_ollama
+    ports:
+      - "11435:11434"
+    volumes:
+      - tfm_ollama_data:/root/.ollama
+    healthcheck:
+      test: [ "CMD-SHELL", "ollama list" ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  # Auto-pull model service
+  ollama-pull-model:
+    image: ollama/ollama:latest
+    container_name: tfm_ollama_pull_model
+    volumes:
+      - tfm_ollama_data:/root/.ollama
+    entrypoint: /bin/sh
+    command: -c "ollama serve & sleep 5 && ollama pull qwen2.5:3b"
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  app:
+    build: .
+    container_name: tfm_invoice_app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/invoices
+      - OLLAMA_URL=http://ollama:11434/api/generate
+    volumes:
+      - /home/venancio/Documentos/ProjectoFinalBIGschool/backend/processed:/app/backend/processed
+      - /home/venancio/Documentos/ProjectoFinalBIGschool/backend/uploads:/app/backend/uploads
+      - /home/venancio/Documentos/ProjectoFinalBIGschool/frontend:/app/frontend
+      - ./.agent:/app/.agent:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      ollama-pull-model:
+        condition: service_completed_successfully
+
+  # Folder Monitor Service
+  watcher:
+    build: .
+    container_name: tfm_invoice_watcher
+    command: python -m backend.watcher
+    volumes:
+      - /home/venancio/Documentos/ProjectoFinalBIGschool/backend/uploads:/app/backend/uploads
+      - /home/venancio/Documentos/ProjectoFinalBIGschool/backend/processed:/app/backend/processed
+      - ./.agent:/app/.agent:ro
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/invoices
+      - OLLAMA_URL=http://ollama:11434/api/generate
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      app:
+        condition: service_started
+
+volumes:
+  tfm_postgres_data:
+  tfm_ollama_data:
