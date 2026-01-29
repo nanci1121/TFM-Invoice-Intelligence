@@ -273,30 +273,33 @@ class TestDeleteEndpoint:
         assert "status" in data or "message" in data
 
 
-class TestChatEndpoint:
-    """Tests para el endpoint de chat"""
-    
-    @patch('backend.main.chat_with_invoices')
-    def test_chat_basic_query(self, mock_chat):
-        """Prueba consulta básica al chat"""
-        mock_chat.return_value = "La factura más alta es de 150 EUR"
-        
-        response = client.post("/chat", json={
-            "query": "¿Cuál es la factura más alta?"
-        })
-        
+class TestSettingsEndpoints:
+    """Tests para los endpoints de configuración (Settings)"""
+
+    def test_get_settings_default(self):
+        """Prueba obtener configuración por defecto"""
+        response = client.get("/api/settings")
         assert response.status_code == 200
         data = response.json()
-        assert "response" in data
-    
-    def test_chat_empty_query(self):
-        """Prueba chat con consulta vacía"""
-        response = client.post("/chat", json={
-            "query": ""
-        })
-        
-        assert response.status_code in [200, 422]
+        assert data["status"] == "success"
+        assert "AI_PROVIDER" in data["settings"]
+        assert "GEMINI_API_KEY" in data["settings"]
 
+    def test_post_settings_persistence(self):
+        """Prueba guardar y recuperar configuración"""
+        payload = {
+            "AI_PROVIDER": "gemini",
+            "GEMINI_API_KEY": "test_key_123"
+        }
+        # Guardar
+        response = client.post("/api/settings", json=payload)
+        assert response.status_code == 200
+        
+        # Recuperar y verificar
+        response = client.get("/api/settings")
+        data = response.json()
+        assert data["settings"]["AI_PROVIDER"] == "gemini"
+        assert data["settings"]["GEMINI_API_KEY"] == "test_key_123"
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -11,7 +11,7 @@ from .ai_service import (
 )
 import os
 from pydantic import BaseModel
-from .database import SessionLocal, init_db, Invoice, get_db, Provider, ExtractionLog
+from .database import SessionLocal, init_db, Invoice, get_db, Provider, ExtractionLog, SystemSetting
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from datetime import datetime
@@ -214,7 +214,7 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
     if not context:
         context = "No hay facturas procesadas todavía."
         
-    response = chat_with_invoices(request.query, context)
+    response = chat_with_invoices(request.query, context, db=db)
     return {"response": response}
 
 @app.delete("/invoices/{invoice_id}")
@@ -316,7 +316,7 @@ async def workflow_validate_invoice(request: WorkflowRequest, db: Session = Depe
     invoices = db.query(Invoice).all()
     context = f"Histórico de {len(invoices)} facturas procesadas"
     
-    result = validate_invoice(invoice_data, context)
+    result = validate_invoice(invoice_data, context, db=db)
     # Parse JSON result if it's a string
     if isinstance(result, str):
         try:
@@ -346,7 +346,7 @@ async def workflow_kpis_direccion(request: WorkflowRequest = None, db: Session =
             for inv in invoices
         ]
     
-    result = generate_kpis_direccion(invoices_data)
+    result = generate_kpis_direccion(invoices_data, db=db)
     # Parse JSON result if it's a string
     if isinstance(result, str):
         try:
@@ -394,7 +394,7 @@ async def workflow_kpis_reclamacion(request: WorkflowRequest, db: Session = Depe
     else:
         return {"status": "error", "message": "invoice_id o invoice_data requerido"}
     
-    result = generate_kpis_reclamacion(invoice_data, historical_data=historical_data)
+    result = generate_kpis_reclamacion(invoice_data, historical_data=historical_data, db=db)
     # Parse JSON result if it's a string
     if isinstance(result, str):
         try:
@@ -440,7 +440,7 @@ async def workflow_compare_supplier(request: WorkflowRequest, db: Session = Depe
     else:
         return {"status": "error", "message": "invoice_id o current_invoice requerido"}
     
-    result = compare_supplier(current_invoice, historical_invoices)
+    result = compare_supplier(current_invoice, historical_invoices, db=db)
     # Parse JSON result if it's a string
     if isinstance(result, str):
         try:
@@ -467,7 +467,7 @@ async def workflow_meeting_summary(request: WorkflowRequest = None, db: Session 
             for inv in invoices
         ]
     
-    result = generate_meeting_summary(invoices_data)
+    result = generate_meeting_summary(invoices_data, db=db)
     # Parse JSON result if it's a string
     if isinstance(result, str):
         try:
@@ -514,7 +514,7 @@ async def workflow_check_alerts(request: WorkflowRequest, db: Session = Depends(
     else:
         return {"status": "error", "message": "invoice_id o invoices requerido"}
     
-    result = check_alerts(invoice_data, historical_avg)
+    result = check_alerts(invoice_data, historical_avg, db=db)
     # Parse JSON result if it's a string
     if isinstance(result, str):
         try:
@@ -567,4 +567,39 @@ async def get_extraction_logs(db: Session = Depends(get_db)):
     """Obtiene los últimos registros de extracción para depuración"""
     logs = db.query(ExtractionLog).order_by(ExtractionLog.timestamp.desc()).limit(10).all()
     return {"status": "success", "logs": logs}
+
+# ============== SETTINGS ENDPOINTS ==============
+
+@app.get("/api/settings")
+async def get_settings(db: Session = Depends(get_db)):
+    """Obtiene la configuración de IA de la base de datos"""
+    settings = db.query(SystemSetting).all()
+    result = {s.key: s.value for s in settings}
+    
+    # Valores por defecto si no existen en DB
+    if "AI_PROVIDER" not in result:
+        result["AI_PROVIDER"] = os.getenv("AI_PROVIDER", "ollama")
+    if "GEMINI_API_KEY" not in result:
+        result["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY", "")
+    if "OPENAI_API_KEY" not in result:
+        result["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "")
+        
+    return {"status": "success", "settings": result}
+
+@app.post("/api/settings")
+async def save_settings(payload: dict, db: Session = Depends(get_db)):
+    """Guarda la configuración de IA en la base de datos"""
+    try:
+        for key, value in payload.items():
+            setting = db.query(SystemSetting).filter(SystemSetting.key == key).first()
+            if setting:
+                setting.value = value
+            else:
+                new_setting = SystemSetting(key=key, value=value)
+                db.add(new_setting)
+        db.commit()
+        return {"status": "success", "message": "Configuración guardada correctamente"}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
 

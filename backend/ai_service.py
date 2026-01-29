@@ -9,13 +9,89 @@ from datetime import datetime
 import logging
 from pathlib import Path
 from sqlalchemy.orm import Session
-from .database import Provider, ExtractionLog
+from .database import Provider, ExtractionLog, SystemSetting
+import google.generativeai as genai
+from openai import OpenAI
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434/api/generate")
+
+# Inicialización básica de clientes (se reconfiguran en cada llamada si cambian las keys)
+def _configure_clients(db: Session = None):
+    """Configura los clientes de IA usando settings de DB o Env"""
+    global AI_PROVIDER, GEMINI_API_KEY, OPENAI_API_KEY, openai_client
+
+    # Valores por defecto de Env
+    p = os.getenv("AI_PROVIDER", "ollama").lower()
+    g_key = os.getenv("GEMINI_API_KEY")
+    o_key = os.getenv("OPENAI_API_KEY")
+
+    if db:
+        settings = db.query(SystemSetting).all()
+        s_dict = {s.key: s.value for s in settings}
+        p = s_dict.get("AI_PROVIDER", p).lower()
+        g_key = s_dict.get("GEMINI_API_KEY", g_key)
+        o_key = s_dict.get("OPENAI_API_KEY", o_key)
+
+    AI_PROVIDER = p
+    GEMINI_API_KEY = g_key
+    OPENAI_API_KEY = o_key
+
+    if AI_PROVIDER == "gemini" and GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+    
+    if AI_PROVIDER == "openai" and OPENAI_API_KEY:
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    else:
+        openai_client = None
+
+def call_ai_service(prompt: str, json_format: bool = False, db: Session = None) -> str:
+    """Función unificada para llamar al proveedor de IA configurado"""
+    
+    _configure_clients(db)
+    
+    if AI_PROVIDER == "gemini" and GEMINI_API_KEY:
+        try:
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            generation_config = {"response_mime_type": "application/json"} if json_format else {}
+            response = model.generate_content(prompt, generation_config=generation_config)
+            return response.text
+        except Exception as e:
+            logger.error(f"❌ Error Gemini: {e}")
+            return str(e)
+
+    elif AI_PROVIDER == "openai" and openai_client:
+        try:
+            response = openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"} if json_format else None
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"❌ Error OpenAI: {e}")
+            return str(e)
+            
+    else: # Default: Ollama
+        payload = {
+            "model": "qwen2.5:3b",
+            "prompt": prompt,
+            "stream": False
+        }
+        if json_format:
+            payload["format"] = "json"
+            
+        try:
+            response = requests.post(OLLAMA_URL, json=payload, timeout=90)
+            response.raise_for_status()
+            result = response.json()
+            return result.get('response', '')
+        except Exception as e:
+            logger.error(f"❌ Error Ollama: {e}")
+            return str(e)
 
 # Helper to read agent files
 def load_agent_file(path: str) -> str:
@@ -239,19 +315,14 @@ def extract_invoice_data(text: str, db: Session, filename: str = "unknown"):
     Devuelve JSON válido.
     """
     
-    payload = {
-        "model": "qwen2.5:3b",
-        "prompt": prompt,
-        "stream": False,
-        "format": "json"
-    }
-    
     final_data = {}
     try:
-        response = requests.post(OLLAMA_URL, json=payload, timeout=90)
-        response.raise_for_status()
-        result = response.json()
-        final_data = json.loads(result['response'])
+        # Usar la función unificada
+        result_text = call_ai_service(prompt, json_format=True, db=db)
+        
+        # Limpieza básica por si el modelo devuelve markdown code blocks
+        clean_text = result_text.replace("```json", "").replace("```", "").strip()
+        final_data = json.loads(clean_text)
         
         # Post-procesamiento: forzar las ayudas detectadas por regex
         for key in ['invoice_number', 'date', 'category', 'vendor_name', 'total_amount']:
@@ -285,7 +356,7 @@ def extract_invoice_data(text: str, db: Session, filename: str = "unknown"):
     return json.dumps(final_data, ensure_ascii=False)
 
 
-def validate_invoice(invoice_data: dict, context: str = ""):
+def validate_invoice(invoice_data: dict, context: str = "", db: Session = None):
     """Workflow /validar_factura - Detectar errores de facturación"""
     # Cargar instrucciones workflow
     workflow_instructions = load_agent_file("workflows/validar-factura.md")
@@ -312,9 +383,9 @@ def validate_invoice(invoice_data: dict, context: str = ""):
     }}
     """
     
-    return _call_ollama(prompt)
+    return call_ai_service(prompt, json_format=True, db=db)
 
-def generate_kpis_direccion(invoices_data: list):
+def generate_kpis_direccion(invoices_data: list, db: Session = None):
     """Workflow /kpis_direccion - KPIs ejecutivos para dirección"""
     
     if not invoices_data:
@@ -348,9 +419,9 @@ def generate_kpis_direccion(invoices_data: list):
     [Decisiones concretas para dirección]
     """
     
-    return _call_ollama(prompt)
+    return call_ai_service(prompt, db=db)
 
-def generate_kpis_reclamacion(invoice_data: dict, contract_data: dict = None, historical_data: list = None):
+def generate_kpis_reclamacion(invoice_data: dict, contract_data: dict = None, historical_data: list = None, db: Session = None):
     """Workflow /kpis_reclamacion - Base técnica para reclamaciones"""
     # Cargar instrucciones workflow
     workflow_instructions = load_agent_file("workflows/kpis-reclamacion.md")
@@ -382,9 +453,9 @@ def generate_kpis_reclamacion(invoice_data: dict, contract_data: dict = None, hi
     [Fundamentación técnica y normativa]
     """
     
-    return _call_ollama(prompt)
+    return call_ai_service(prompt, db=db)
 
-def compare_supplier(current_invoice: dict, historical_invoices: list = None, alternative_supplier: dict = None):
+def compare_supplier(current_invoice: dict, historical_invoices: list = None, alternative_supplier: dict = None, db: Session = None):
     """Workflow /comparar_proveedor - Benchmarking comparativo"""
     # Cargar instrucciones workflow
     workflow_instructions = load_agent_file("workflows/comparar-proveedor.md")
@@ -416,9 +487,9 @@ def compare_supplier(current_invoice: dict, historical_invoices: list = None, al
     [Mantener / Renegociar / Cambiar con justificación]
     """
     
-    return _call_ollama(prompt)
+    return call_ai_service(prompt, db=db)
 
-def generate_meeting_summary(invoices_data: list, issues: list = None):
+def generate_meeting_summary(invoices_data: list, issues: list = None, db: Session = None):
     """Workflow /resumen_reunion - Mensaje ejecutivo para dirección"""
     # Cargar instrucciones workflow
     workflow_instructions = load_agent_file("workflows/resumen-reunion.md")
@@ -448,9 +519,9 @@ def generate_meeting_summary(invoices_data: list, issues: list = None):
     [Acción concreta]
     """
     
-    return _call_ollama(prompt)
+    return call_ai_service(prompt, db=db)
 
-def check_alerts(invoice_data: dict, historical_avg: dict = None, thresholds: dict = None):
+def check_alerts(invoice_data: dict, historical_avg: dict = None, thresholds: dict = None, db: Session = None):
     """Workflow /alertas - Detección de anomalías"""
     default_thresholds = {
         "consumption_increase_pct": 20,
@@ -491,9 +562,9 @@ def check_alerts(invoice_data: dict, historical_avg: dict = None, thresholds: di
     [Qué hacer con cada alerta]
     """
     
-    return _call_ollama(prompt)
+    return call_ai_service(prompt, db=db)
 
-def chat_with_invoices(query: str, context: str):
+def chat_with_invoices(query: str, context: str, db: Session = None):
     """Chat mejorado con estructura profesional"""
     prompt = f"""
     {CORE_RULES}
@@ -512,19 +583,6 @@ def chat_with_invoices(query: str, context: str):
     Mantén un tono profesional pero accesible.
     """
     
-    return _call_ollama(prompt)
+    return call_ai_service(prompt, db=db)
 
-def _call_ollama(prompt: str) -> str:
-    """Helper para llamadas a Ollama"""
-    payload = {
-        "model": "qwen2.5:3b",
-        "prompt": prompt,
-        "stream": False
-    }
-    
-    try:
-        response = requests.post(OLLAMA_URL, json=payload, timeout=90)
-        response.raise_for_status()
-        return response.json().get("response", "Error: No response")
-    except Exception as e:
-        return f"Error conectando con IA: {str(e)}"
+
