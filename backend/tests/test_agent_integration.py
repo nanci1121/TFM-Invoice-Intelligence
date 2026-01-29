@@ -10,18 +10,30 @@ from pathlib import Path
 import unittest
 from unittest.mock import MagicMock, patch
 
-# Mock database and requests to avoid external dependencies during config test
-sys.modules['backend.database'] = MagicMock()
-sys.modules['requests'] = MagicMock()
-sys.modules['pdfplumber'] = MagicMock()
-sys.modules['pytesseract'] = MagicMock()
-sys.modules['PIL'] = MagicMock()
-sys.modules['sqlalchemy.orm'] = MagicMock()
-
 # Now import the module to test
 from backend import ai_service
 
 class TestAgentConfig(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Mock dependencies that are not needed for rule loading
+        cls.patches = [
+            patch('backend.ai_service.genai'),
+            patch('backend.ai_service.OpenAI'),
+            patch('backend.ai_service.requests'),
+            patch('backend.ai_service.pytesseract'),
+            patch('backend.ai_service.pdfplumber'),
+            patch('backend.ai_service.Provider'),
+            patch('backend.ai_service.ExtractionLog')
+        ]
+        for p in cls.patches:
+            p.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        for p in cls.patches:
+            p.stop()
+
     def setUp(self):
         # Ensure we are in the root directory for relative paths to work
         self.root_dir = os.getcwd()
