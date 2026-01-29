@@ -26,7 +26,7 @@ def _configure_clients(db: Session = None):
 
     # Valores por defecto de Env
     p = os.getenv("AI_PROVIDER", "ollama").lower()
-    g_key = os.getenv("GEMINI_API_KEY")
+    g_key = os.getenv("GEMINI_API_KEY") or os.getenv("API_KEY_INVOICE_AUDIT_AGENT")
     o_key = os.getenv("OPENAI_API_KEY")
 
     if db:
@@ -52,10 +52,11 @@ def call_ai_service(prompt: str, json_format: bool = False, db: Session = None) 
     """Función unificada para llamar al proveedor de IA configurado"""
     
     _configure_clients(db)
+    logger.info(f"🤖 Llamando al servicio de IA: {AI_PROVIDER.upper()}")
     
     if AI_PROVIDER == "gemini" and GEMINI_API_KEY:
         try:
-            model = genai.GenerativeModel('gemini-2.0-flash')
+            model = genai.GenerativeModel('gemini-flash-latest')
             generation_config = {"response_mime_type": "application/json"} if json_format else {}
             response = model.generate_content(prompt, generation_config=generation_config)
             return response.text
