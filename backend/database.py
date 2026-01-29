@@ -8,7 +8,7 @@ import os
 TESTING = os.getenv("TESTING", "false").lower() == "true"
 
 if TESTING:
-    DATABASE_URL = "sqlite:///:memory:"
+    DATABASE_URL = "sqlite:///./test.db"
 else:
     DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/invoices")
 
@@ -21,6 +21,11 @@ class Provider(Base):
     vendor_name = Column(String)
     category = Column(String)
     patterns = Column(JSON) # Stores invoice_number, date, vendor, total_amount, nif patterns
+
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+    key = Column(String, primary_key=True, index=True)
+    value = Column(String)
 
 class ExtractionLog(Base):
     __tablename__ = "extraction_logs"

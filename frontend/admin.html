@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,12 +8,13 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <div class="dashboard">
         <header>
             <h1>⚙️ Administración de Patrones</h1>
             <div class="user-profile" style="display: flex; gap: 1rem; align-items: center;">
-                <button class="upload-btn" onclick="window.location.href='/frontend/index.html'" 
+                <button class="upload-btn" onclick="window.location.href='/frontend/index.html'"
                     style="background: rgba(255,255,255,0.1); color: var(--text-main); border: 1px solid var(--glass-border);">
                     ← Volver al Dashboard
                 </button>
@@ -24,12 +26,15 @@
             <div class="card" style="grid-column: 1 / 4;">
                 <h2>Seleccionar Proveedor</h2>
                 <div style="display: flex; gap: 1rem; align-items: center;">
-                    <select id="providerSelect" onchange="loadProvider()" 
-                            style="flex: 1; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 0.5rem; font-size: 1rem;">
-                        <option value="" style="background: #1e293b; color: #e2e8f0;">Selecciona un proveedor...</option>
+                    <select id="providerSelect" onchange="loadProvider()"
+                        style="flex: 1; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 0.5rem; font-size: 1rem;">
+                        <option value="" style="background: #1e293b; color: #e2e8f0;">Selecciona un proveedor...
+                        </option>
                     </select>
                     <button class="upload-btn" onclick="addNewProvider()">+ Nuevo Proveedor</button>
-                    <button class="upload-btn" onclick="savePatterns()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">💾 Guardar Cambios</button>
+                    <button class="upload-btn" onclick="savePatterns()"
+                        style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">💾 Guardar
+                        Cambios</button>
                 </div>
                 <div id="saveStatus" style="margin-top: 1rem; font-size: 0.85rem;"></div>
             </div>
@@ -38,33 +43,43 @@
             <div class="card" style="grid-column: 1 / 3; display: none;" id="editorCard">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <h2 id="providerTitle">Editor de Patrones</h2>
-                    <button onclick="deleteProvider()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; cursor: pointer; padding: 0.5rem 1rem; border-radius: 0.5rem;">🗑️ Eliminar Proveedor</button>
+                    <button onclick="deleteProvider()"
+                        style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; cursor: pointer; padding: 0.5rem 1rem; border-radius: 0.5rem;">🗑️
+                        Eliminar Proveedor</button>
                 </div>
 
                 <div style="display: grid; gap: 1.5rem;">
                     <!-- Información Básica -->
                     <div>
-                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Nombre del Proveedor:</label>
-                        <input type="text" id="providerName" placeholder="Ej: Mercadona" 
-                               style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 0.5rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Nombre
+                            del Proveedor:</label>
+                        <input type="text" id="providerName" placeholder="Ej: Mercadona"
+                            style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 0.5rem;">
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div>
-                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Nombre en Factura:</label>
-                            <input type="text" id="vendorName" placeholder="Ej: Mercadona S.A." 
-                                   style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 0.5rem;">
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Nombre
+                                en Factura:</label>
+                            <input type="text" id="vendorName" placeholder="Ej: Mercadona S.A."
+                                style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 0.5rem;">
                         </div>
                         <div>
-                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Categoría:</label>
-                            <select id="categorySelect" 
-                                    style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 0.5rem;">
-                                <option value="Telecom" style="background: #1e293b; color: #e2e8f0;">Telecomunicaciones</option>
-                                <option value="Electricity" style="background: #1e293b; color: #e2e8f0;">Electricidad</option>
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Categoría:</label>
+                            <select id="categorySelect"
+                                style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 0.5rem;">
+                                <option value="Telecom" style="background: #1e293b; color: #e2e8f0;">Telecomunicaciones
+                                </option>
+                                <option value="Electricity" style="background: #1e293b; color: #e2e8f0;">Electricidad
+                                </option>
                                 <option value="Gas" style="background: #1e293b; color: #e2e8f0;">Gas</option>
                                 <option value="Water" style="background: #1e293b; color: #e2e8f0;">Agua</option>
                                 <option value="Food" style="background: #1e293b; color: #e2e8f0;">Alimentación</option>
-                                <option value="Maintenance" style="background: #1e293b; color: #e2e8f0;">Mantenimiento</option>
+                                <option value="Maintenance" style="background: #1e293b; color: #e2e8f0;">Mantenimiento
+                                </option>
                                 <option value="Other" style="background: #1e293b; color: #e2e8f0;">Otros</option>
                             </select>
                         </div>
@@ -73,35 +88,46 @@
                     <!-- Patrones Regex -->
                     <div>
                         <h3 style="color: var(--text-main); margin-bottom: 1rem;">Patrones de Extracción (Regex)</h3>
-                        
+
                         <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">🔢 Número de Factura (uno por línea):</label>
-                            <textarea id="invoiceNumberPatterns" rows="3" placeholder='Ej: FACTURA SIMPLIFICADA[:\s]+(\d{4}-\d{3}-\d{6})'
-                                      style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #6ee7b7; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">🔢
+                                Número de Factura (uno por línea):</label>
+                            <textarea id="invoiceNumberPatterns" rows="3"
+                                placeholder='Ej: FACTURA SIMPLIFICADA[:\s]+(\d{4}-\d{3}-\d{6})'
+                                style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #6ee7b7; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
                         </div>
 
                         <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">📅 Fecha (uno por línea):</label>
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">📅
+                                Fecha (uno por línea):</label>
                             <textarea id="datePatterns" rows="3" placeholder='Ej: (\d{2})/(\d{2})/(\d{4})'
-                                      style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #6ee7b7; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
+                                style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #6ee7b7; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
                         </div>
 
                         <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">🏢 Proveedor (uno por línea):</label>
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">🏢
+                                Proveedor (uno por línea):</label>
                             <textarea id="vendorPatterns" rows="2" placeholder='Ej: MERCADONA[,\s]+S\.?A\.?'
-                                      style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #6ee7b7; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
+                                style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #6ee7b7; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
                         </div>
 
                         <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">🆔 NIF/CIF (Prioridad Máxima - uno por línea):</label>
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">🆔
+                                NIF/CIF (Prioridad Máxima - uno por línea):</label>
                             <textarea id="nifPatterns" rows="2" placeholder='Ej: 39182489B'
-                                      style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #fbbf24; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
+                                style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #fbbf24; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
                         </div>
 
                         <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">💰 Importe Total (uno por línea):</label>
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">💰
+                                Importe Total (uno por línea):</label>
                             <textarea id="totalAmountPatterns" rows="2" placeholder='Ej: TOTAL\s+\(€\)\s+(\d+[.,]\d{2})'
-                                      style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #6ee7b7; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
+                                style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #6ee7b7; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
                         </div>
                     </div>
                 </div>
@@ -123,28 +149,83 @@
                     </ul>
 
                     <h3 style="color: var(--text-main); font-size: 0.95rem; margin-top: 1.5rem;">Ejemplos:</h3>
-                    <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem; margin-top: 0.5rem;">
+                    <div
+                        style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem; margin-top: 0.5rem;">
                         <strong>Número:</strong><br>
                         <code style="color: #6ee7b7;">FACTURA[:\s]+([0-9-]+)</code>
                     </div>
-                    <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem; margin-top: 0.5rem;">
+                    <div
+                        style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem; margin-top: 0.5rem;">
                         <strong>Fecha DD/MM/YYYY:</strong><br>
                         <code style="color: #6ee7b7;">(\d{2})/(\d{2})/(\d{4})</code>
                     </div>
 
-                    <p style="margin-top: 1.5rem; padding: 0.75rem; background: rgba(34, 211, 153, 0.1); border-left: 3px solid #10b981; border-radius: 0.5rem;">
-                        💡 <strong>Tip:</strong> Usa la tarjeta de "Texto Extraído" en el dashboard principal para ver el texto real y crear tus regex.
+                    <p
+                        style="margin-top: 1.5rem; padding: 0.75rem; background: rgba(34, 211, 153, 0.1); border-left: 3px solid #10b981; border-radius: 0.5rem;">
+                        💡 <strong>Tip:</strong> Usa la tarjeta de "Texto Extraído" en el dashboard principal para ver
+                        el texto real y crear tus regex.
                     </p>
                 </div>
+            </div>
+
+            <!-- Configuración de IA -->
+            <div class="card" style="grid-column: 1 / 4; margin-top: 1rem; border: 1px solid rgba(139, 92, 246, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2>🤖 Configuración de Inteligencia Artificial</h2>
+                    <button class="upload-btn" onclick="saveAISettings()"
+                        style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">💾 Guardar Configuración
+                        IA</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
+                    <div>
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Proveedor
+                            de IA:</label>
+                        <select id="aiProviderSelect" onchange="toggleAIFields()"
+                            style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 0.5rem;">
+                            <option value="ollama" style="background: #1e293b; color: #e2e8f0;">Ollama (Local -
+                                Privacidad Máxima)</option>
+                            <option value="gemini" style="background: #1e293b; color: #e2e8f0;">Google Gemini (Público -
+                                Mayor Precisión)</option>
+                            <option value="openai" style="background: #1e293b; color: #e2e8f0;">OpenAI ChatGPT (Público
+                                - Estándar)</option>
+                        </select>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                            Selecciona 'Ollama' para procesamiento local o un proveedor público para mayor fiabilidad en
+                            la extracción.
+                        </p>
+                    </div>
+
+                    <div id="aiKeysContainer" style="display: none; grid-template-columns: 1fr; gap: 1rem;">
+                        <div id="geminiKeyBox" style="display: none;">
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Gemini
+                                API Key:</label>
+                            <input type="password" id="geminiApiKey" placeholder="Tu clave de API de Google..."
+                                style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 0.5rem;">
+                        </div>
+                        <div id="openaiKeyBox" style="display: none;">
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">OpenAI
+                                API Key:</label>
+                            <input type="password" id="openaiApiKey" placeholder="Tu clave de API de OpenAI..."
+                                style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 0.5rem;">
+                        </div>
+                    </div>
+                </div>
+                <div id="aiSaveStatus" style="margin-top: 1rem; font-size: 0.85rem;"></div>
             </div>
 
             <!-- Dashboard de Logs de Extracción -->
             <div class="card" style="grid-column: 1 / 4; margin-top: 2rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h2>📝 Registro de Identificación (Troubleshooting)</h2>
-                    <button class="upload-btn" onclick="loadLogs()" style="padding: 0.5rem 1rem;">🔄 Refrescar Logs</button>
+                    <button class="upload-btn" onclick="loadLogs()" style="padding: 0.5rem 1rem;">🔄 Refrescar
+                        Logs</button>
                 </div>
-                <div id="logsContainer" style="max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 0.5rem; border: 1px solid var(--glass-border);">
+                <div id="logsContainer"
+                    style="max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 0.5rem; border: 1px solid var(--glass-border);">
                     <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
                         <thead style="background: rgba(255,255,255,0.05); position: sticky; top: 0;">
                             <tr>
@@ -155,7 +236,10 @@
                             </tr>
                         </thead>
                         <tbody id="logsBody">
-                            <tr><td colspan="4" style="padding: 2rem; text-align: center; color: var(--text-muted);">Pulsa refrescar para ver los logs...</td></tr>
+                            <tr>
+                                <td colspan="4" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                                    Pulsa refrescar para ver los logs...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -197,7 +281,7 @@
         function loadProvider() {
             const select = document.getElementById('providerSelect');
             const index = parseInt(select.value);
-            
+
             if (isNaN(index)) {
                 document.getElementById('editorCard').style.display = 'none';
                 document.getElementById('helpCard').style.display = 'none';
@@ -281,7 +365,7 @@
                     body: JSON.stringify(allPatterns)
                 });
                 const data = await response.json();
-                
+
                 if (data.status === 'success') {
                     statusDiv.innerHTML = '✅ Guardado correctamente. Los cambios se aplicarán en la próxima factura subida.';
                     statusDiv.style.color = '#34d399';
@@ -305,10 +389,10 @@
                     const tbody = document.getElementById('logsBody');
                     tbody.innerHTML = data.logs.map(log => {
                         const date = new Date(log.timestamp).toLocaleString();
-                        const scores = log.matching_scores.map(s => 
+                        const scores = log.matching_scores.map(s =>
                             `<div style="margin-bottom:4px;"><strong>${s.provider}</strong>: 🏆 ${s.score} pts <br><small style="color:#6ee7b7">${s.matches.join(', ')}</small></div>`
                         ).join('');
-                        
+
                         return `
                         <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                             <td style="padding: 1rem; vertical-align: top;">${log.file_name}</td>
@@ -324,9 +408,75 @@
             }
         }
 
+        // --- AI SETTINGS ---
+
+        async function loadAISettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const s = data.settings;
+                    document.getElementById('aiProviderSelect').value = s.AI_PROVIDER || 'ollama';
+                    document.getElementById('geminiApiKey').value = s.GEMINI_API_KEY || '';
+                    document.getElementById('openaiApiKey').value = s.OPENAI_API_KEY || '';
+                    toggleAIFields();
+                }
+            } catch (err) {
+                console.error("Error cargando settings de IA:", err);
+            }
+        }
+
+        function toggleAIFields() {
+            const provider = document.getElementById('aiProviderSelect').value;
+            const container = document.getElementById('aiKeysContainer');
+            const gBox = document.getElementById('geminiKeyBox');
+            const oBox = document.getElementById('openaiKeyBox');
+
+            if (provider === 'ollama') {
+                container.style.display = 'none';
+            } else {
+                container.style.display = 'grid';
+                gBox.style.display = (provider === 'gemini') ? 'block' : 'none';
+                oBox.style.display = (provider === 'openai') ? 'block' : 'none';
+            }
+        }
+
+        async function saveAISettings() {
+            const statusDiv = document.getElementById('aiSaveStatus');
+            statusDiv.innerHTML = '⏳ Guardando configuración de IA...';
+            statusDiv.style.color = '#818cf8';
+
+            const payload = {
+                AI_PROVIDER: document.getElementById('aiProviderSelect').value,
+                GEMINI_API_KEY: document.getElementById('geminiApiKey').value,
+                OPENAI_API_KEY: document.getElementById('openaiApiKey').value
+            };
+
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    statusDiv.innerHTML = '✅ Configuración de IA guardada. Los próximos análisis usarán esta selección.';
+                    statusDiv.style.color = '#a78bfa';
+                    setTimeout(() => statusDiv.innerHTML = '', 5000);
+                } else {
+                    statusDiv.innerHTML = '❌ Error: ' + data.message;
+                    statusDiv.style.color = '#f87171';
+                }
+            } catch (err) {
+                statusDiv.innerHTML = '❌ Error al guardar: ' + err.message;
+                statusDiv.style.color = '#f87171';
+            }
+        }
+
         // Cargar al inicio
         loadPatterns();
         loadLogs();
+        loadAISettings();
     </script>
 </body>
 
