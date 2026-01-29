@@ -55,7 +55,7 @@ def call_ai_service(prompt: str, json_format: bool = False, db: Session = None) 
     
     if AI_PROVIDER == "gemini" and GEMINI_API_KEY:
         try:
-            model = genai.GenerativeModel('gemini-2.0-flash')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             generation_config = {"response_mime_type": "application/json"} if json_format else {}
             response = model.generate_content(prompt, generation_config=generation_config)
             return response.text
