@@ -52,6 +52,7 @@ def call_ai_service(prompt: str, json_format: bool = False, db: Session = None) 
     """Función unificada para llamar al proveedor de IA configurado"""
     
     _configure_clients(db)
+    logger.info(f"🤖 Llamando al servicio de IA: {AI_PROVIDER.upper()}")
     
     if AI_PROVIDER == "gemini" and GEMINI_API_KEY:
         try:
