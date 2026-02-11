@@ -50,6 +50,7 @@ class Invoice(Base):
     category = Column(String) # 'Electricity', 'Gas', 'Telecom', 'Water', etc.
     consumption = Column(Float)
     consumption_unit = Column(String) # 'kWh', 'm3', 'min', etc.
+    raw_text = Column(Text) # Extracted raw text from PDF/Image
 
 from sqlalchemy import create_engine
 

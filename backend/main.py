@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from fastapi import Depends
 from datetime import datetime
 import json
+import re
 from typing import Optional, List
 from pathlib import Path
 
@@ -101,6 +102,146 @@ async def read_root():
 UPLOAD_DIR = "backend/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# =============================================================================
+# RESCATE POR REGEX: Busca datos faltantes directamente en el texto del PDF
+# Primero usa los patrones del proveedor (configurables desde admin.html),
+# luego usa patrones genéricos como fallback.
+# =============================================================================
+def rescue_with_regex(data: dict, raw_text: str, db: Session = None) -> dict:
+    """
+    Si la IA dejó campos como 'unknown' o vacíos, 
+    busca directamente en el raw_text con regex.
+    
+    1º Intenta con patrones específicos del proveedor (de la tabla Provider en DB).
+    2º Si no encuentra, usa patrones genéricos hardcoded como fallback.
+    """
+    if not raw_text:
+        return data
+    
+    # --- Cargar patrones específicos del proveedor desde la DB ---
+    provider_patterns = {}
+    if db:
+        providers = db.query(Provider).all()
+        for prov in providers:
+            # Buscar si algún patrón de "vendor" coincide con el texto
+            if prov.patterns and prov.patterns.get("vendor"):
+                for vendor_pattern in prov.patterns["vendor"]:
+                    try:
+                        if re.search(vendor_pattern, raw_text, re.IGNORECASE):
+                            provider_patterns = prov.patterns
+                            print(f"🔧 REGEX RESCUE: Proveedor detectado: {prov.name}")
+                            break
+                    except re.error:
+                        pass
+                if provider_patterns:
+                    break
+    
+    # --- NÚMERO DE FACTURA ---
+    if not data.get("invoice_number") or data.get("invoice_number") == "unknown":
+        # 1º: Patrones del proveedor (de la DB, configurables desde admin.html)
+        db_invoice_patterns = provider_patterns.get("invoice_number", [])
+        # 2º: Patrones genéricos (fallback)
+        generic_invoice_patterns = [
+            r'N\.?\s*º?\s*(?:de\s+)?(?:factura|fact\.?)\s*[:.]?\s*([A-Z0-9][\w\-/]{3,20})',
+            r'(?:Factura|Invoice)\s*(?:N[ºo°]?|#|número)?\s*[:.]?\s*([A-Z0-9][\w\-/]{3,20})',
+            r'(FE\d{8,12})',
+            r'(FA\d{4,}[\-/]?\d*)',
+            r'Nº\s*Factura\s*[:.]?\s*([A-Z0-9][\w\-/]{3,20})',
+        ]
+        
+        all_patterns = db_invoice_patterns + generic_invoice_patterns
+        for pattern in all_patterns:
+            try:
+                match = re.search(pattern, raw_text, re.IGNORECASE)
+                if match:
+                    invoice_num = match.group(1).strip()
+                    if len(invoice_num) >= 4:
+                        source = "DB" if pattern in db_invoice_patterns else "genérico"
+                        data["invoice_number"] = invoice_num
+                        print(f"🔧 REGEX RESCUE ({source}): Nº factura = {invoice_num}")
+                        break
+            except re.error as e:
+                print(f"⚠️ Regex inválido (invoice_number): {pattern} → {e}")
+    
+    # --- FECHA DE FACTURA ---
+    if not data.get("date") or data.get("date") == "unknown":
+        db_date_patterns = provider_patterns.get("date", [])
+        generic_date_patterns = [
+            r'[Ff]echa\s+(?:de\s+la\s+)?factura\s*[:.]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+            r'[Ff]echa\s+(?:de\s+)?emisi[oó]n\s*[:.]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+            r'[Ff]echa\s*[:.]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+        ]
+        
+        all_patterns = db_date_patterns + generic_date_patterns
+        for pattern in all_patterns:
+            try:
+                match = re.search(pattern, raw_text)
+                if match:
+                    # Handle multi-group patterns (DD)(MM)(YYYY) or single-group DD/MM/YYYY
+                    groups = [g for g in match.groups() if g]
+                    if len(groups) == 3:
+                        # Pattern captured (DD)(MM)(YYYY) separately
+                        day, month, year = groups
+                    elif len(groups) == 1:
+                        # Pattern captured DD/MM/YYYY as single group
+                        date_raw = groups[0].strip()
+                        parts = re.split(r'[/-]', date_raw)
+                        if len(parts) == 3:
+                            day, month, year = parts
+                        else:
+                            continue
+                    else:
+                        continue
+                    
+                    if len(year) == 2:
+                        year = "20" + year
+                    try:
+                        source = "DB" if pattern in db_date_patterns else "genérico"
+                        data["date"] = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+                        print(f"🔧 REGEX RESCUE ({source}): Fecha = {data['date']}")
+                        break
+                    except:
+                        pass
+            except re.error as e:
+                print(f"⚠️ Regex inválido (date): {pattern} → {e}")
+    
+    # --- CONSUMO (kWh, m³) ---
+    if not data.get("consumption") or float(data.get("consumption", 0)) == 0:
+        db_consumption_patterns = provider_patterns.get("consumption", [])
+        generic_consumption_patterns = [
+            r'Total\s+periodo\s*\(?\d?\)?\s*(\d+[\.,]?\d*)\s+(\d+[\.,]?\d*)\s+(\d+[\.,]?\d*)',
+            r'[Cc]onsumo\s+(?:total|periodo)\s*[:.]?\s*(\d+[\.,]?\d*)\s*(kWh|m[³3]|litros?)',
+            r'(\d+[\.,]?\d*)\s*kWh\s*(?:total|consumidos?)',
+        ]
+        
+        all_patterns = db_consumption_patterns + generic_consumption_patterns
+        for pattern in all_patterns:
+            try:
+                match = re.search(pattern, raw_text)
+                if match:
+                    groups = [g for g in match.groups() if g]
+                    # Sum Punta+Llano+Valle if 3 numeric groups
+                    numeric_groups = [g for g in groups if g.replace(',', '.').replace('.', '', 1).isdigit()]
+                    if len(numeric_groups) == 3:
+                        total = sum(float(g.replace(',', '.')) for g in numeric_groups)
+                        data["consumption"] = total
+                        data["consumption_unit"] = "kWh"
+                        source = "DB" if pattern in db_consumption_patterns else "genérico"
+                        print(f"🔧 REGEX RESCUE ({source}): Consumo (P+L+V) = {total} kWh")
+                        break
+                    elif len(numeric_groups) >= 1:
+                        val = float(numeric_groups[0].replace(',', '.'))
+                        if val > 0:
+                            data["consumption"] = val
+                            data["consumption_unit"] = "kWh"
+                            source = "DB" if pattern in db_consumption_patterns else "genérico"
+                            print(f"🔧 REGEX RESCUE ({source}): Consumo = {val} kWh")
+                            break
+            except re.error as e:
+                print(f"⚠️ Regex inválido (consumption): {pattern} → {e}")
+
+    return data
+
 @app.post("/upload")
 async def upload_invoice(file: UploadFile = File(...), db: Session = Depends(get_db)):
     file_path = os.path.join(UPLOAD_DIR, file.filename)
@@ -131,6 +272,9 @@ async def upload_invoice(file: UploadFile = File(...), db: Session = Depends(get
     
     try:
         data = json.loads(extracted_json)
+        
+        # === RESCATE POR REGEX: Si la IA dejó campos vacíos, los buscamos en el texto ===
+        data = rescue_with_regex(data, raw_text, db=db)
         
         # Parse date from extracted data
         invoice_date = datetime.now()  # Default fallback
@@ -176,7 +320,8 @@ async def upload_invoice(file: UploadFile = File(...), db: Session = Depends(get
             file_path=file_path,
             category=data.get("category", "Other"),
             consumption=float(data.get("consumption") or 0),
-            consumption_unit=data.get("consumption_unit", "")
+            consumption_unit=data.get("consumption_unit", ""),
+            raw_text=raw_text
         )
         db.add(new_invoice)
         db.commit()
@@ -205,11 +350,79 @@ def get_reports(db: Session = Depends(get_db)):
 
 @app.post("/chat")
 async def chat(request: ChatRequest, db: Session = Depends(get_db)):
-    # Fetch all data as context
-    invoices = db.query(Invoice).all()
+    # Improved Context Selection based on Query
+    query_lower = request.query.lower()
+    
+    # 1. Filter invoices based on keywords in query (e.g. "Som Energia", "diciembre")
+    all_invoices = db.query(Invoice).all()
+    relevant_invoices = []
+    
+    for inv in all_invoices:
+        # Check for vendor match (check if ANY word from vendor appears in query)
+        if inv.vendor_name:
+            vendor_words = inv.vendor_name.lower().replace(",", "").split()
+            # Match if at least 2 words match, or 1 word if vendor has only 1 word
+            matches = sum(1 for w in vendor_words if len(w) > 2 and w in query_lower)
+            if matches >= 1:
+                relevant_invoices.append(inv)
+                continue
+            
+        # Check for category match (e.g. "luz", "electricidad")
+        if inv.category and inv.category.lower() in query_lower:
+            relevant_invoices.append(inv)
+            continue
+            
+        # Check for month/year match in date
+        if inv.date:
+            date_str = str(inv.date)
+            # Simple check if YYYY-MM is in query
+            if date_str[:7] in request.query: 
+                relevant_invoices.append(inv)
+                continue
+    
+    # Fallback: if no specific filtering, use all invoices (but limit text size)
+    if not relevant_invoices:
+        relevant_invoices = all_invoices
+
     context = ""
-    for inv in invoices:
-        context += f"Factura {inv.invoice_number}: PROVEEDOR {inv.vendor_name}, TOTAL {inv.total_amount} {inv.currency}, TIPO {inv.type}, FECHA {inv.date}.\n"
+    # ESTRATEGIA: Solo incluir RAW TEXT si el usuario pregunta por un proveedor específico
+    # para no agotar la cuota de tokens con preguntas generales.
+    include_raw_text = False
+    if relevant_invoices and len(relevant_invoices) < len(all_invoices):
+        # Si hemos filtrado (ej: "de Som Energia"), entonces sí queremos el detalle
+        include_raw_text = True
+    
+    # DEBUG LOG
+    print(f"🔍 CHAT DEBUG: Query='{request.query}', Relevant={len(relevant_invoices)}/{len(all_invoices)}, IncludeRawText={include_raw_text}")
+    
+    for inv in relevant_invoices:
+        context += f"=== FACTURA ID {inv.id} ===\n"
+        
+        # RAW TEXT FIRST (most important for the AI to read)
+        if include_raw_text and inv.raw_text:
+            context += f"TEXTO COMPLETO DEL PDF (FUENTE PRINCIPAL - LEE ESTO PRIMERO):\n"
+            context += f"{inv.raw_text[:2000]}\n"
+            context += f"--- FIN TEXTO PDF ---\n"
+        
+        # Structured data SECOND (only show non-unknown fields)
+        context += f"DATOS EXTRAÍDOS AUTOMÁTICAMENTE:\n"
+        context += f"  Proveedor: {inv.vendor_name}\n"
+        context += f"  Total: {inv.total_amount} {inv.currency}\n"
+        context += f"  Categoría: {inv.category}\n"
+        
+        if inv.invoice_number and inv.invoice_number != "unknown":
+            context += f"  Nº Factura: {inv.invoice_number}\n"
+        else:
+            context += f"  Nº Factura: (NO EXTRAÍDO - BUSCAR EN TEXTO DEL PDF ARRIBA)\n"
+            
+        if inv.consumption and inv.consumption > 0:
+            context += f"  Consumo: {inv.consumption} {inv.consumption_unit}\n"
+        
+        context += "\n"
+    
+    # DEBUG LOG
+    print(f"📝 CHAT DEBUG: Contexto total = {len(context)} caracteres")
+    print(f"📝 CHAT DEBUG: Contiene 'N.º de factura'? {'Sí' if 'N.º de factura' in context else 'No'}")
     
     if not context:
         context = "No hay facturas procesadas todavía."

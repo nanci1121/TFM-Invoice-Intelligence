@@ -123,6 +123,21 @@
                 </div>
             </div>
 
+            <!-- JSON Viewer Card (Hidden by default) -->
+            <div id="jsonViewerCard" class="card" style="grid-column: 1 / 4; display: none; margin-top: 1rem; border: 1px solid rgba(139, 92, 246, 0.4);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>🔍 JSON Respuesta de IA (Datos Estructurados)</h2>
+                    <button onclick="document.getElementById('jsonViewerCard').style.display='none'" 
+                            style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; cursor: pointer; padding: 4px 10px; border-radius: 4px; font-weight: 600;">Cerrar</button>
+                </div>
+                <div id="jsonViewerContent" style="background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.85rem; max-height: 400px; overflow-y: auto; color: #a78bfa; white-space: pre-wrap;">
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    Estos son los datos exactos que la IA devolvió y que se guardaron en la base de datos.
+                </p>
+            </div>
+
+
             <!-- Pre-processed Text Card (Hidden by default) - FOR TESTING ONLY -->
             <div id="rawTextCard" class="card" style="grid-column: 1 / 4; display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -225,6 +240,11 @@
                         rawCard.style.display = 'block';
                     }
 
+                    // Mostrar el JSON extraído (si viene en la respuesta) en la tarjeta nueva
+                    if (data.invoice) {
+                        showInvoiceJSON(data.invoice);
+                    }
+
                     setTimeout(() => {
                         statusDiv.innerHTML = '';
                         updateDashboard();
@@ -296,8 +316,11 @@
                 } else {
                     tableBody.innerHTML = invoices.slice(-10).reverse().map(inv => {
                         const date = inv.date ? new Date(inv.date).toLocaleDateString('es-ES') : '-';
+                        // Escapar comillas para pasar el objeto JSON al onclick
+                        const safeInv = JSON.stringify(inv).replace(/"/g, '&quot;');
+                        
                         return `<tr>
-                            <td><code style="background: rgba(99, 102, 241, 0.15); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${inv.invoice_number || 'N/A'}</code></td>
+                            <td><code style="background: rgba(99, 102, 241, 0.15); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; cursor:pointer;" onclick="showInvoiceJSON(${safeInv})">${inv.invoice_number || 'N/A'}</code></td>
                             <td>${date}</td>
                             <td><strong>${inv.vendor_name}</strong></td>
                             <td><span style="background: rgba(129, 140, 248, 0.2); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">${inv.category}</span></td>
@@ -307,6 +330,7 @@
                                 <select onchange="runInvoiceWorkflow(${inv.id}, this.value); this.value='';" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 6px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer;">
                                     <option value="" style="background: #1e293b; color: #e2e8f0;">⚙️ Acciones...</option>
                                     <option value="validar" style="background: #1e293b; color: #e2e8f0;">✓ Validar Factura</option>
+                                    <option value="json" style="background: #1e293b; color: #a78bfa;">🔍 Ver JSON IA</option>
                                     <option value="reclamacion" style="background: #1e293b; color: #e2e8f0;">⚠️ Análisis Reclamación</option>
                                     <option value="comparar" style="background: #1e293b; color: #e2e8f0;">📊 Comparar Proveedor</option>
                                     <option value="alertas" style="background: #1e293b; color: #e2e8f0;">🔔 Verificar Alertas</option>
@@ -390,11 +414,31 @@
             container.scrollTop = container.scrollHeight;
         }
 
+        function showInvoiceJSON(invoiceData) {
+            const card = document.getElementById('jsonViewerCard');
+            const content = document.getElementById('jsonViewerContent');
+            content.innerText = JSON.stringify(invoiceData, null, 2);
+            card.style.display = 'block';
+            card.scrollIntoView({ behavior: 'smooth' });
+        }
+
         async function runInvoiceWorkflow(invoiceId, action) {
             if (!action) return;
             
             if (action === 'delete') {
                 deleteInvoice(invoiceId);
+                return;
+            }
+
+            // Nueva opción: Ver JSON desde el menú de acciones
+            if (action === 'json') {
+                // Recuperar la factura actualizada desde el servidor para mostrarla
+                try {
+                    const response = await fetch('/reports');
+                    const invoices = await response.json();
+                    const inv = invoices.find(i => i.id === invoiceId);
+                    if (inv) showInvoiceJSON(inv);
+                } catch(e) { console.error(e); }
                 return;
             }
 

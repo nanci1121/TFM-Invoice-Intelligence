@@ -80,6 +80,79 @@
           "TOTAL[:\\s]+(\\d+[.,]\\d{2})\\s*€?"
         ]
       }
+    },
+    {
+      "name": "Som Energia",
+      "vendor_name": "Som Energia, SCCL",
+      "category": "Electricity",
+      "patterns": {
+        "invoice_number": [
+          "N\\.?\\s*º\\s*de\\s+factura[:\\s]+([A-Z0-9]+)",
+          "(FE\\d{8,12})"
+        ],
+        "date": [
+          "Fecha\\s+de\\s+la\\s+factura[:\\s]+(\\d{2})/(\\d{2})/(\\d{4})"
+        ],
+        "vendor": [
+          "Som Energia",
+          "Som Energia, SCCL"
+        ],
+        "nif": [
+          "F55091367"
+        ],
+        "total_amount": [
+          "TOTAL IMPORTE FACTURA\\s+(\\d+[.,]\\d{2})"
+        ],
+        "consumption": [
+          "Total\\s+periodo\\s*\\(?\\d?\\)?\\s*(\\d+)\\s+(\\d+)\\s+(\\d+)"
+        ]
+      }
+    },
+    {
+      "name": "PCComponentes",
+      "vendor_name": "PC Componentes y Multimedia SLU",
+      "category": "Technology",
+      "patterns": {
+        "invoice_number": [
+          "Nº\\s*de\\s*factura\\s*[:.]?\\s*([A-Z0-9/]+)"
+        ],
+        "date": [
+          "Fecha\\s*[:.]?\\s*(\\d{1,2})/(\\d{1,2})/(\\d{4})"
+        ],
+        "vendor": [
+          "PC Componentes",
+          "B73347494"
+        ],
+        "nif": [
+          "B73347494"
+        ],
+        "total_amount": [
+          "TOTAL\\s+A\\s+PAGAR\\s+(\\d+[.,]\\d{2})\\s*€?"
+        ]
+      }
+    },
+    {
+      "name": "MediaMarkt",
+      "vendor_name": "Media Markt Saturn S.A.",
+      "category": "Technology",
+      "patterns": {
+        "invoice_number": [
+          "(E\\d{3}-A\\d{10,})"
+        ],
+        "date": [
+          "Fecha de factura\\s*(\\d{2}\\.\\d{2}\\.\\d{4})"
+        ],
+        "vendor": [
+          "MEDIA MARKT",
+          "Media Markt Saturn"
+        ],
+        "nif": [
+          "ESA82037292"
+        ],
+        "total_amount": [
+          "Total\\s+Total\\s+(\\d+[.,]\\d{2})\\s*EUR"
+        ]
+      }
     }
   ]
 }

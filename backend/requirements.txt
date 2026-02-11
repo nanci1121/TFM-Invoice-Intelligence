@@ -16,5 +16,5 @@ pytest
 pytest-cov
 httpx
 pdfplumber
-google-generativeai
+google-genai
 openai

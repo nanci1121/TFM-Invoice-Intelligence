@@ -53,9 +53,9 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - /home/venancio/Documentos/ProjectoFinalBIGschool/backend/processed:/app/backend/processed
-      - /home/venancio/Documentos/ProjectoFinalBIGschool/backend/uploads:/app/backend/uploads
-      - /home/venancio/Documentos/ProjectoFinalBIGschool/frontend:/app/frontend
+      - ./backend/processed:/app/backend/processed
+      - ./backend/uploads:/app/backend/uploads
+      - ./frontend:/app/frontend
       - ./.agent:/app/.agent:ro
     depends_on:
       db:
@@ -71,8 +71,8 @@ services:
     container_name: tfm_invoice_watcher
     command: python -m backend.watcher
     volumes:
-      - /home/venancio/Documentos/ProjectoFinalBIGschool/backend/uploads:/app/backend/uploads
-      - /home/venancio/Documentos/ProjectoFinalBIGschool/backend/processed:/app/backend/processed
+      - ./backend/uploads:/app/backend/uploads
+      - ./backend/processed:/app/backend/processed
       - ./.agent:/app/.agent:ro
     environment:
       - DATABASE_URL=${DATABASE_URL}

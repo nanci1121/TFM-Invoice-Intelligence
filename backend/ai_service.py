@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from sqlalchemy.orm import Session
 from .database import Provider, ExtractionLog, SystemSetting
-import google.generativeai as genai
+from google import genai
 from openai import OpenAI
 
 # Configurar logging
@@ -22,10 +22,12 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434/api/generate")
 # Inicialización básica de clientes (se reconfiguran en cada llamada si cambian las keys)
 def _configure_clients(db: Session = None):
     """Configura los clientes de IA usando settings de DB o Env"""
-    global AI_PROVIDER, GEMINI_API_KEY, OPENAI_API_KEY, openai_client
+    global AI_PROVIDER, GEMINI_API_KEY, OPENAI_API_KEY, openai_client, gemini_client
 
-    # Valores por defecto de Env
-    p = os.getenv("AI_PROVIDER", "ollama").lower()
+    # Valores por defecto de Env (con limpieza de posibles errores de formato)
+    p = os.getenv("AI_PROVIDER", "ollama").lower().strip()
+    if "=" in p: p = p.split("=")[0]
+    
     g_key = os.getenv("GEMINI_API_KEY") or os.getenv("API_KEY_INVOICE_AUDIT_AGENT")
     o_key = os.getenv("OPENAI_API_KEY")
 
@@ -39,9 +41,13 @@ def _configure_clients(db: Session = None):
     AI_PROVIDER = p
     GEMINI_API_KEY = g_key
     OPENAI_API_KEY = o_key
+    
+    logger.info(f"🔧 CONFIG IA: Provider='{AI_PROVIDER}' | GeminiKey={'SI' if GEMINI_API_KEY else 'NO'} | OpenAIKey={'SI' if OPENAI_API_KEY else 'NO'}")
 
     if AI_PROVIDER == "gemini" and GEMINI_API_KEY:
-        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+    else:
+        gemini_client = None
     
     if AI_PROVIDER == "openai" and OPENAI_API_KEY:
         openai_client = OpenAI(api_key=OPENAI_API_KEY)
@@ -54,15 +60,26 @@ def call_ai_service(prompt: str, json_format: bool = False, db: Session = None) 
     _configure_clients(db)
     logger.info(f"🤖 Llamando al servicio de IA: {AI_PROVIDER.upper()}")
     
-    if AI_PROVIDER == "gemini" and GEMINI_API_KEY:
-        try:
-            model = genai.GenerativeModel('gemini-flash-latest')
-            generation_config = {"response_mime_type": "application/json"} if json_format else {}
-            response = model.generate_content(prompt, generation_config=generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"❌ Error Gemini: {e}")
-            return str(e)
+    if AI_PROVIDER == "gemini" and gemini_client:
+        import time
+        for attempt in range(2): # 2 intentos
+            try:
+                config = {}
+                if json_format:
+                    config["response_mime_type"] = "application/json"
+                response = gemini_client.models.generate_content(
+                    model='gemini-2.0-flash',
+                    contents=prompt,
+                    config=config if config else None
+                )
+                return response.text
+            except Exception as e:
+                if "429" in str(e) and attempt == 0:
+                    logger.warning("⚠️ Cuota de Gemini agotada, reintentando en 2 segundos...")
+                    time.sleep(2)
+                    continue
+                logger.error(f"❌ Error Gemini: {e}")
+                return str(e)
 
     elif AI_PROVIDER == "openai" and openai_client:
         try:
@@ -86,7 +103,7 @@ def call_ai_service(prompt: str, json_format: bool = False, db: Session = None) 
             payload["format"] = "json"
             
         try:
-            response = requests.post(OLLAMA_URL, json=payload, timeout=90)
+            response = requests.post(OLLAMA_URL, json=payload, timeout=180)
             response.raise_for_status()
             result = response.json()
             return result.get('response', '')
@@ -566,22 +583,39 @@ def check_alerts(invoice_data: dict, historical_avg: dict = None, thresholds: di
     return call_ai_service(prompt, db=db)
 
 def chat_with_invoices(query: str, context: str, db: Session = None):
-    """Chat mejorado con estructura profesional"""
+    """Chat mejorado con acceso a texto original de facturas"""
     prompt = f"""
     {CORE_RULES}
     
-    Datos disponibles:
+    INSTRUCCIONES CRÍTICAS:
+    =====================
+    Tienes acceso a dos fuentes de información para cada factura:
+    
+    1. DATOS ESTRUCTURADOS: Campos como Nº, Proveedor, Total, Fecha, etc.
+       - IMPORTANTE: Si un campo dice "unknown" o está vacío, NO significa que no exista.
+       - Significa que la extracción automática falló para ese campo.
+    
+    2. EXTRACTO TEXTO ORIGINAL: Es el texto REAL extraído del PDF de la factura.
+       - Este texto contiene TODA la información de la factura original.
+       - Si un dato estructurado dice "unknown", BUSCA la respuesta en el EXTRACTO TEXTO ORIGINAL.
+       - Los números de factura suelen aparecer como "N.º de factura:", "Nº Factura:", "Factura Nº", etc.
+       - Las fechas reales suelen aparecer como "Fecha de la factura:", "Fecha factura:", etc.
+       - Los consumos aparecen como "kWh", "Total periodo", "Lectura final - Lectura inicial", etc.
+    
+    REGLA DE ORO: Si la respuesta NO está en los datos estructurados, SIEMPRE búscala en el EXTRACTO TEXTO ORIGINAL antes de decir "no disponible".
+    
+    DATOS DISPONIBLES:
+    ==================
     {context}
     
-    Pregunta del usuario: {query}
+    PREGUNTA DEL USUARIO:
+    =====================
+    {query}
     
-    ESTRUCTURA DE RESPUESTA:
-    1. KPIs relevantes (si aplica)
-    2. Análisis de la situación
-    3. Conclusiones o acciones recomendadas
-    
-    Si la información no está disponible, indícalo claramente y explica qué datos necesitarías.
-    Mantén un tono profesional pero accesible.
+    FORMATO DE RESPUESTA:
+    - Responde de forma directa y concreta.
+    - Si encuentras el dato en el texto original, indícalo claramente.
+    - Solo di "no disponible" si has buscado en AMBAS fuentes (estructurada y texto original) y no lo encuentras.
     """
     
     return call_ai_service(prompt, db=db)
